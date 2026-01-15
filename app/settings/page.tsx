@@ -1,72 +1,67 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Edit3, Trash2, Package } from 'lucide-react';
+import { ArrowLeft, Plus, Package, Trash2 } from 'lucide-react';
 
-export default function SettingsPage() {
+export default function Settings() {
   const [products, setProducts] = useState([]);
-  const [form, setForm] = useState({ id: '', name: '', price: '', cost: '', stock: '', category: 'UMUM' });
+  const [form, setForm] = useState({ name: '', price: '', cost: '', stock: '', category: 'UMUM' });
 
-  const fetchProducts = async () => {
+  const load = async () => {
     const res = await fetch('/api/pos');
     const data = await res.json();
     setProducts(data.products || []);
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => { load(); }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    const type = form.id ? 'UPDATE_PRODUCT' : 'ADD_PRODUCT';
-    await fetch('/api/pos', { method: 'POST', body: JSON.stringify({ type, data: form }) });
-    setForm({ id: '', name: '', price: '', cost: '', stock: '', category: 'UMUM' });
-    fetchProducts();
+    const res = await fetch('/api/pos', {
+      method: 'POST',
+      body: JSON.stringify({ type: 'ADD_PRODUCT', data: form })
+    });
+    if (res.ok) {
+      setForm({ name: '', price: '', cost: '', stock: '', category: 'UMUM' });
+      load();
+      alert("Produk Berhasil Ditambah!");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#07080A] text-slate-400 p-8 md:p-16">
-      <div className="max-w-6xl mx-auto">
-        <Link href="/" className="inline-flex items-center gap-2 text-xs font-black uppercase text-slate-600 hover:text-emerald-500 mb-8"><ArrowLeft size={16}/> Kembali</Link>
-        <h1 className="text-4xl font-black text-white italic mb-12 tracking-tighter">INVENTORY <span className="text-emerald-500 not-italic">CONTROL.</span></h1>
+    <div className="min-h-screen bg-[#07080A] text-white p-8">
+      <div className="max-w-5xl mx-auto">
+        <Link href="/" className="text-slate-500 hover:text-emerald-500 flex items-center gap-2 mb-8 text-xs font-bold uppercase tracking-widest transition-all">
+          <ArrowLeft size={16}/> Kembali ke Kasir
+        </Link>
+        
+        <h1 className="text-4xl font-black italic mb-12">PENGATURAN <span className="text-emerald-500 not-italic">STOK.</span></h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          <form onSubmit={handleSubmit} className="lg:col-span-4 bg-[#111318] p-8 rounded-4xl border border-white/5 h-fit space-y-4">
-            <h2 className="text-white font-black uppercase text-[10px] tracking-widest mb-4">{form.id ? 'Edit Barang' : 'Barang Baru'}</h2>
-            <input placeholder="Nama Barang" className="w-full bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none focus:border-emerald-500/50" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
-            <div className="grid grid-cols-2 gap-4">
-              <input type="number" placeholder="Stok" className="w-full bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none" value={form.stock} onChange={e => setForm({...form, stock: e.target.value})} />
-              <input placeholder="Kategori" className="w-full bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none" value={form.category} onChange={e => setForm({...form, category: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <p className="text-[10px] font-black text-emerald-500 uppercase ml-1">Harga Jual</p>
-              <input type="number" placeholder="Rp" className="w-full bg-black/40 border border-emerald-500/20 p-4 rounded-xl text-emerald-500 font-black outline-none" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required />
-            </div>
-            <div className="space-y-2">
-              <p className="text-[10px] font-black text-slate-600 uppercase ml-1">Harga Modal</p>
-              <input type="number" placeholder="Rp" className="w-full bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none font-bold" value={form.cost} onChange={e => setForm({...form, cost: e.target.value})} />
-            </div>
-            <button className="w-full bg-emerald-600 py-4 rounded-xl text-white font-black uppercase text-[10px] tracking-widest mt-4">Simpan Ke Gudang</button>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Form Tambah */}
+          <form onSubmit={handleAdd} className="lg:col-span-4 bg-[#111318] p-8 rounded-3xl border border-white/5 space-y-4 h-fit">
+            <h2 className="text-xs font-black uppercase text-emerald-500 mb-4 flex items-center gap-2"><Plus size={16}/> Tambah Produk</h2>
+            <input placeholder="Nama Barang" className="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-emerald-500 text-sm" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+            <input type="number" placeholder="Harga Jual" className="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-emerald-500 text-sm" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required />
+            <input type="number" placeholder="Harga Modal" className="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-emerald-500 text-sm" value={form.cost} onChange={e => setForm({...form, cost: e.target.value})} required />
+            <input type="number" placeholder="Stok Awal" className="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-emerald-500 text-sm" value={form.stock} onChange={e => setForm({...form, stock: e.target.value})} required />
+            <button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-xl uppercase text-xs tracking-widest transition-all shadow-lg shadow-emerald-900/20">Simpan Barang</button>
           </form>
 
-          <div className="lg:col-span-8 bg-[#111318] rounded-4xl border border-white/5 overflow-hidden">
+          {/* Daftar Produk */}
+          <div className="lg:col-span-8 bg-[#111318] rounded-3xl border border-white/5 overflow-hidden">
+            <div className="p-6 border-b border-white/5 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Daftar Inventori</div>
             <div className="divide-y divide-white/5">
               {products.map((p: any) => (
-                <div key={p.id} className="p-6 flex items-center justify-between hover:bg-white/[0.02]">
+                <div key={p.id} className="p-6 flex justify-between items-center group hover:bg-white/[0.02]">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center text-slate-700"><Package size={20}/></div>
+                    <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-slate-600 group-hover:text-emerald-500 transition-colors"><Package size={18}/></div>
                     <div>
-                      <h4 className="text-white font-bold uppercase text-sm">{p.name}</h4>
-                      <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{p.category} • Stok: {p.stock}</p>
+                      <p className="font-bold uppercase text-sm">{p.name}</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase">Stok: {p.stock} • Modal: Rp{Number(p.cost).toLocaleString()}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-6">
-                    <div className="text-right">
-                      <p className="text-sm font-black text-white italic">Rp{Number(p.price).toLocaleString()}</p>
-                      <p className="text-[9px] font-bold text-slate-600 uppercase">Modal: Rp{Number(p.cost).toLocaleString()}</p>
-                    </div>
-                    <button onClick={() => setForm(p)} className="p-2 hover:text-emerald-500 transition-colors"><Edit3 size={18}/></button>
-                    <button onClick={async () => { if(confirm('Hapus?')) { await fetch('/api/pos', { method: 'POST', body: JSON.stringify({ type: 'DELETE_PRODUCT', id: p.id }) }); fetchProducts(); } }} className="p-2 hover:text-rose-500 transition-colors"><Trash2 size={18}/></button>
-                  </div>
+                  <p className="font-black text-emerald-500 italic">Rp{Number(p.price).toLocaleString()}</p>
                 </div>
               ))}
             </div>
