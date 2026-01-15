@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ShoppingCart, Search, History, Loader2, X, Settings, ShoppingBag, CheckCircle2, Trash2, Home } from 'lucide-react';
 
-export default function TokopediaPOS() {
+export default function TokoRahmaPOS() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [cart, setCart] = useState<any[]>([]);
@@ -34,7 +34,6 @@ export default function TokopediaPOS() {
     });
   };
 
-  // FUNGSI UPDATE QTY MANUAL (DENGAN PERBAIKAN INPUT KOSONG)
   const updateQty = (id: any, val: any, stock: any) => {
     if (val === "") {
       setCart(prev => prev.map(i => i.id === id ? { ...i, qty: "" } : i));
@@ -45,7 +44,6 @@ export default function TokopediaPOS() {
   };
 
   const handleBlur = () => {
-    // Menghapus item yang qty-nya kosong atau 0 saat input kehilangan fokus
     setCart(prev => prev.filter(i => Number(i.qty) > 0));
   };
 
@@ -77,7 +75,7 @@ export default function TokopediaPOS() {
       <main className="flex-1 flex flex-col h-full overflow-hidden pb-16 md:pb-0">
         <header className="px-6 py-4 bg-white shadow-sm flex flex-col md:flex-row gap-4 items-center z-40">
           <div className="flex w-full md:w-auto justify-between items-center">
-            <h1 className="text-xl font-bold text-[#00AA5B] tracking-tight">Rahma<span className="text-[#212121]">pedia.</span></h1>
+            <h1 className="text-xl font-bold text-[#00AA5B] tracking-tight whitespace-nowrap">Toko <span className="text-[#212121]">Rahma.</span></h1>
             <button onClick={() => setIsCartOpen(true)} className="md:hidden relative p-2 text-[#00AA5B] bg-green-50 rounded-lg">
               <ShoppingCart size={20}/>
               {cart.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">{cart.length}</span>}
@@ -85,10 +83,11 @@ export default function TokopediaPOS() {
           </div>
           <div className="relative w-full max-w-2xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
-            <input onChange={e=>setSearch(e.target.value)} placeholder="Cari di Rahmapedia" className="w-full bg-white border border-gray-300 rounded-lg pl-11 pr-4 py-2 text-sm outline-none focus:border-[#00AA5B] transition-all"/>
+            <input onChange={e=>setSearch(e.target.value)} placeholder="Cari di Toko Rahma" className="w-full bg-white border border-gray-300 rounded-lg pl-11 pr-4 py-2 text-sm outline-none focus:border-[#00AA5B] transition-all"/>
           </div>
         </header>
 
+        {/* CATEGORIES */}
         <div className="px-6 py-4 flex gap-2 overflow-x-auto no-scrollbar bg-white shrink-0 border-b border-gray-100">
           {categories.map(c => (
             <button key={c} onClick={()=>setActiveCat(c)} className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap ${activeCat === c ? 'bg-[#00AA5B] border-[#00AA5B] text-white shadow-md shadow-green-100' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}>{c}</button>
@@ -131,7 +130,6 @@ export default function TokopediaPOS() {
                   <p className="text-xs font-bold text-[#00AA5B] mt-0.5">Rp{i.price.toLocaleString()}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <button onClick={() => updateQty(i.id, Number(i.qty) - 1, i.stock)} className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center text-[#00AA5B] hover:bg-gray-50">-</button>
-                    {/* INPUT QTY MANUAL */}
                     <input 
                         type="number" 
                         value={i.qty} 
@@ -155,7 +153,7 @@ export default function TokopediaPOS() {
             
             <div className="space-y-3">
               <div className="relative">
-                <label className="text-[10px] font-bold text-gray-400 absolute left-3 top-2 uppercase">Uang Tunai</label>
+                <label className="text-[10px] font-bold text-gray-400 absolute left-3 top-2 uppercase tracking-tighter">Uang Tunai</label>
                 <input type="number" value={cash} onChange={e=>setCash(e.target.value)} placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-xl pt-6 pb-2 px-3 text-right text-gray-800 font-bold text-lg outline-none focus:border-[#00AA5B]"/>
               </div>
               <div className="bg-green-50/50 rounded-xl p-3 flex justify-between items-center border border-green-100">
