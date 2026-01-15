@@ -1,0 +1,17 @@
+{
+  "name": "Toko Rahma POS",
+  "short_name": "RahmaPOS",
+  "description": "Aplikasi Kasir Modern Toko Rahma",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0C10",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/9306/9306630.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
