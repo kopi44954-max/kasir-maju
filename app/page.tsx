@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, Search, History, Loader2, X, Settings, ShoppingBag, CheckCircle2, Trash2, Home } from 'lucide-react';
+import { ShoppingCart, Search, History, Loader2, X, Settings, ShoppingBag, CheckCircle2, Trash2, Home, ChevronRight } from 'lucide-react';
 
 export default function TokoRahmaPOS() {
   const [products, setProducts] = useState<any[]>([]);
@@ -72,14 +72,11 @@ export default function TokoRahmaPOS() {
         </div>
       </nav>
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden pb-16 md:pb-0">
-        <header className="px-6 py-4 bg-white shadow-sm flex flex-col md:flex-row gap-4 items-center z-40">
+      <main className="flex-1 flex flex-col h-full overflow-hidden">
+        <header className="px-6 py-4 bg-white shadow-sm flex flex-col md:flex-row gap-4 items-center z-40 shrink-0">
           <div className="flex w-full md:w-auto justify-between items-center">
             <h1 className="text-xl font-bold text-[#00AA5B] tracking-tight whitespace-nowrap">Toko <span className="text-[#212121]">Rahma.</span></h1>
-            <button onClick={() => setIsCartOpen(true)} className="md:hidden relative p-2 text-[#00AA5B] bg-green-50 rounded-lg">
-              <ShoppingCart size={20}/>
-              {cart.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">{cart.length}</span>}
-            </button>
+            <ShoppingBag className="md:hidden text-gray-300" size={24}/>
           </div>
           <div className="relative w-full max-w-2xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
@@ -94,91 +91,94 @@ export default function TokoRahmaPOS() {
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 content-start">
+        {/* PRODUCT GRID */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 content-start pb-40 md:pb-6">
           {loading ? <Loader2 className="animate-spin mx-auto col-span-full text-[#00AA5B] mt-20" size={32}/> : 
           filtered.map(p=>(
-            <button key={p.id} onClick={()=>addToCart(p)} disabled={p.stock<=0} className={`bg-white rounded-xl border border-gray-200 overflow-hidden text-left transition-all hover:shadow-md ${p.stock<=0?'opacity-40 grayscale':'active:scale-95'}`}>
-              <div className="h-32 bg-gray-50 flex items-center justify-center text-gray-200 uppercase font-black text-[10px] p-4 text-center">{p.category}</div>
-              <div className="p-3">
-                <h3 className="text-xs font-normal line-clamp-2 mb-1 h-8 leading-relaxed text-gray-600">{p.name}</h3>
-                <p className="text-sm font-bold text-[#212121] mb-1">Rp{p.price.toLocaleString()}</p>
-                <span className="text-[10px] font-medium text-gray-400">Stok: {p.stock}</span>
+            <button key={p.id} onClick={()=>addToCart(p)} disabled={p.stock<=0} className={`bg-white rounded-xl border border-gray-200 p-4 text-left transition-all hover:shadow-md hover:border-[#00AA5B]/30 flex flex-col justify-between min-h-[120px] ${p.stock<=0?'opacity-40 grayscale':'active:scale-95'}`}>
+              <div>
+                <span className="text-[9px] font-bold text-[#00AA5B] bg-green-50 px-2 py-0.5 rounded uppercase mb-2 inline-block leading-none">{p.category}</span>
+                <h3 className="text-[13px] font-bold text-gray-800 leading-snug break-words uppercase">{p.name}</h3>
+              </div>
+              <div className="mt-4 pt-3 border-t border-gray-50 flex flex-col">
+                <p className="text-sm font-black text-[#212121]">Rp{p.price.toLocaleString()}</p>
+                <span className="text-[10px] font-medium text-gray-400">Tersedia: {p.stock}</span>
               </div>
             </button>
           ))}
         </div>
       </main>
 
-      {/* CART OVERLAY / SIDEBAR */}
+      {/* MOBILE FLOATING CART BAR (HANYA MUNCUL DI HP SAAT CART TERISI) */}
+      {cart.length > 0 && !isCartOpen && (
+        <div className="md:hidden fixed bottom-20 left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-300">
+          <button onClick={() => setIsCartOpen(true)} className="w-full bg-[#00AA5B] shadow-lg shadow-green-200 rounded-2xl p-4 flex items-center justify-between text-white">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <ShoppingCart size={24}/>
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#00AA5B]">{cart.length}</span>
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] font-bold opacity-80 uppercase leading-none">Total Belanja</p>
+                <p className="text-sm font-bold tracking-tight">Rp{total.toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 font-bold text-xs uppercase tracking-wider">
+              Lihat Detail <ChevronRight size={16}/>
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* CART OVERLAY (SIDEBAR) */}
       <div className={`fixed inset-0 z-[100] transition-opacity duration-300 md:relative md:inset-auto md:z-0 md:flex ${isCartOpen ? 'opacity-100' : 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto'}`}>
         <div className="absolute inset-0 bg-black/40 md:hidden" onClick={() => setIsCartOpen(false)} />
-        <aside className={`absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-white flex flex-col transition-transform duration-300 transform md:relative md:w-[400px] md:translate-x-0 ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-          <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-white">
-            <h2 className="font-bold text-gray-800 text-sm">Keranjang Belanja</h2>
-            <div className="flex gap-1">
-               <button onClick={()=>setCart([])} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={20}/></button>
-               <button onClick={() => setIsCartOpen(false)} className="md:hidden p-2 text-gray-400"><X/></button>
-            </div>
+        <aside className={`absolute right-0 top-0 bottom-0 w-full md:w-[400px] bg-white flex flex-col transition-transform duration-300 transform md:translate-x-0 ${isCartOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}`}>
+          <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0">
+            <h2 className="font-bold text-gray-800 text-sm">Keranjang Toko Rahma</h2>
+            <button onClick={() => setIsCartOpen(false)} className="p-2 text-gray-400 hover:text-red-500"><X size={24}/></button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar pb-10">
             {cart.map(i=>(
-              <div key={i.id} className="flex gap-3 pb-4 border-b border-gray-50">
-                <div className="w-14 h-14 bg-gray-50 rounded-lg flex items-center justify-center text-gray-300 text-[8px] font-bold p-2 text-center uppercase">{i.category}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate text-gray-800 uppercase">{i.name}</p>
-                  <p className="text-xs font-bold text-[#00AA5B] mt-0.5">Rp{i.price.toLocaleString()}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <button onClick={() => updateQty(i.id, Number(i.qty) - 1, i.stock)} className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center text-[#00AA5B] hover:bg-gray-50">-</button>
-                    <input 
-                        type="number" 
-                        value={i.qty} 
-                        onChange={(e) => updateQty(i.id, e.target.value, i.stock)} 
-                        onBlur={handleBlur}
-                        className="w-12 bg-white border border-gray-200 rounded-lg py-1 text-center text-xs font-bold outline-none focus:border-[#00AA5B]"
-                    />
-                    <button onClick={() => updateQty(i.id, Number(i.qty) + 1, i.stock)} className="w-7 h-7 rounded-lg bg-[#00AA5B] flex items-center justify-center text-white">+</button>
-                  </div>
+              <div key={i.id} className="p-3 bg-gray-50/50 rounded-xl border border-gray-100 flex justify-between items-center">
+                <div className="flex-1 min-w-0 pr-3">
+                  <p className="text-[11px] font-bold text-gray-800 uppercase leading-tight">{i.name}</p>
+                  <p className="text-xs font-bold text-[#00AA5B] mt-1">Rp{i.price.toLocaleString()}</p>
                 </div>
-                <button onClick={()=>updateQty(i.id, 0, i.stock)} className="self-start p-1 text-gray-300 hover:text-red-500"><X size={16}/></button>
+                <div className="flex items-center gap-2">
+                  <input type="number" value={i.qty} onChange={(e) => updateQty(i.id, e.target.value, i.stock)} onBlur={handleBlur} className="w-10 bg-white border border-gray-200 rounded-lg py-1.5 text-center text-xs font-bold outline-none focus:border-[#00AA5B]"/>
+                  <button onClick={()=>updateQty(i.id, 0, i.stock)} className="p-1 text-gray-300 hover:text-red-500"><Trash2 size={14}/></button>
+                </div>
               </div>
             ))}
           </div>
 
-          <div className="p-6 bg-white border-t border-gray-100 shadow-[0_-4px_10px_rgba(0,0,0,0.03)] space-y-4">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-500 font-medium">Total Tagihan</span>
-              <span className="font-bold text-xl text-[#00AA5B]">Rp{total.toLocaleString()}</span>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="relative">
-                <label className="text-[10px] font-bold text-gray-400 absolute left-3 top-2 uppercase tracking-tighter">Uang Tunai</label>
-                <input type="number" value={cash} onChange={e=>setCash(e.target.value)} placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-xl pt-6 pb-2 px-3 text-right text-gray-800 font-bold text-lg outline-none focus:border-[#00AA5B]"/>
-              </div>
+          <div className="p-6 bg-white border-t border-gray-100 space-y-4 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+            <div className="flex justify-between items-center"><span className="text-xs text-gray-500 font-medium">Total Harga</span><span className="font-bold text-xl text-[#00AA5B]">Rp{total.toLocaleString()}</span></div>
+            <div className="space-y-2">
+              <input type="number" value={cash} onChange={e=>setCash(e.target.value)} placeholder="Nominal Uang..." className="w-full bg-gray-100 border-none rounded-xl p-4 text-center text-gray-800 font-bold text-lg outline-none focus:ring-2 focus:ring-[#00AA5B]/20"/>
               <div className="bg-green-50/50 rounded-xl p-3 flex justify-between items-center border border-green-100">
                 <span className="text-xs text-gray-500 font-medium">Kembalian</span>
-                <span className={`font-black text-lg ${change < 0 ? 'text-red-500' : 'text-[#00AA5B]'}`}>Rp{change.toLocaleString()}</span>
+                <span className="font-black text-lg text-[#00AA5B]">Rp{change.toLocaleString()}</span>
               </div>
             </div>
-
-            <button onClick={bayar} disabled={cart.length===0||Number(cash)<total} className="w-full py-4 bg-[#00AA5B] hover:bg-[#009650] text-white rounded-xl font-bold uppercase text-[10px] tracking-wider transition-all shadow-md shadow-green-100 disabled:opacity-30 disabled:shadow-none">Selesaikan Pembayaran</button>
+            <button onClick={bayar} disabled={cart.length===0||Number(cash)<total} className="w-full py-4 bg-[#00AA5B] text-white rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all shadow-md shadow-green-100 disabled:opacity-30">Selesaikan Pembayaran</button>
           </div>
         </aside>
       </div>
 
-      {/* MOBILE NAV BOTTOM */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-3 z-50">
+      {/* MOBILE NAV BOTTOM (ALWAYS AT THE BOTTOM) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-3 z-[60]">
         <Link href="/" className="flex flex-col items-center gap-1 text-[#00AA5B]"><Home size={20}/><span className="text-[10px] font-medium">Beranda</span></Link>
         <Link href="/history" className="flex flex-col items-center gap-1 text-gray-400"><History size={20}/><span className="text-[10px] font-medium">Transaksi</span></Link>
         <Link href="/settings" className="flex flex-col items-center gap-1 text-gray-400"><Settings size={20}/><span className="text-[10px] font-medium">Inventaris</span></Link>
       </nav>
 
       {success && (
-        <div className="fixed inset-0 z-[200] bg-white flex flex-col items-center justify-center text-[#00AA5B] animate-in fade-in duration-300">
-          <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-4"><CheckCircle2 size={60} className="animate-bounce"/></div>
-          <h2 className="text-xl font-bold text-[#212121]">Pembayaran Berhasil</h2>
-          <p className="text-sm text-gray-400 mt-2">Stok produk telah diperbarui</p>
+        <div className="fixed inset-0 z-[200] bg-white flex flex-col items-center justify-center text-[#00AA5B] animate-in fade-in">
+          <CheckCircle2 size={64} className="mb-4 animate-bounce"/>
+          <h2 className="text-xl font-bold text-gray-800 uppercase tracking-tighter">Pembayaran Sukses</h2>
         </div>
       )}
     </div>
