@@ -7,7 +7,7 @@ export default function KasirApp() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // GANTI PIN DI SINI
-  const MY_PIN = "1234"; 
+  const MY_PIN = "12345"; 
 
   const fetchData = async () => {
     const res = await fetch('/api/pos');
