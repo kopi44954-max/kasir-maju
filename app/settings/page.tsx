@@ -72,7 +72,7 @@ export default function InventorySettings() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
-          {/* FORM SECTION - DENGAN HIGHLIGHT SAAT EDIT */}
+          {/* FORM SECTION */}
           <div className="lg:col-span-4">
             <div className={`transition-all duration-500 p-8 rounded-3xl border ${isEditing ? 'bg-emerald-500/5 border-emerald-500/50 shadow-[0_0_50px_rgba(16,185,129,0.1)]' : 'bg-[#111318] border-white/5 shadow-2xl'} sticky top-12`}>
               
@@ -82,7 +82,7 @@ export default function InventorySettings() {
                     {isEditing ? <Edit3 size={18}/> : <Plus size={18}/>}
                   </div>
                   <h2 className="text-xs font-black uppercase tracking-[0.2em] text-white">
-                    {isEditing ? 'Mode Edit Produk' : 'Tambah Produk Baru'}
+                    {isEditing ? 'Mode Edit Produk' : 'Tambah Baru'}
                   </h2>
                 </div>
                 {isEditing && (
@@ -117,20 +117,18 @@ export default function InventorySettings() {
                   </div>
                 </div>
 
-                {/* HIGHLIGHT HARGA MODAL (PENTING UNTUK LABA) */}
                 <div className={`space-y-2 p-4 rounded-2xl border transition-all ${isEditing ? 'bg-blue-500/10 border-blue-500/30 animate-pulse' : 'bg-white/5 border-white/5'}`}>
                   <label className="text-[10px] font-black uppercase text-blue-400 flex items-center gap-2">
                     <AlertCircle size={12}/> Harga Modal (Cost)
                   </label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400 text-xs font-bold">Rp</span>
-                    <input type="number" value={formData.cost} onChange={e => setFormData({...formData, cost: e.target.value})} className="w-full bg-black/40 border border-blue-500/10 p-4 pl-10 rounded-xl outline-none focus:border-blue-400/50 text-blue-400 font-bold" placeholder="0" />
+                    <input type="number" value={formData.cost} onChange={e => setFormData({...formData, cost: e.target.value})} className="w-full bg-black/40 border border-blue-400/10 p-4 pl-10 rounded-xl outline-none focus:border-blue-400/50 text-blue-400 font-bold" placeholder="0" />
                   </div>
-                  <p className="text-[9px] text-slate-600 font-medium">Laba dihitung dari selisih Harga Jual & Modal.</p>
                 </div>
 
                 <button type="submit" className={`w-full py-4 rounded-xl font-bold text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl active:scale-95 ${isEditing ? 'bg-blue-600 text-white shadow-blue-900/20' : 'bg-emerald-600 text-white shadow-emerald-900/20'}`}>
-                  {isEditing ? 'Update & Simpan Perubahan' : 'Tambah Ke Inventori'}
+                  {isEditing ? 'Simpan Perubahan' : 'Tambah Ke Inventori'}
                 </button>
               </form>
             </div>
@@ -173,7 +171,10 @@ export default function InventorySettings() {
                       <div className="flex items-center justify-between md:justify-end gap-10">
                         <div className="text-left md:text-right">
                           <p className="text-sm font-black text-white italic tracking-tighter">Rp{Number(p.price).toLocaleString()}</p>
-                          <p className="text-[10px] font-bold text-blue-500/60 tracking-tight">Cost: Rp{Number(p.cost || 0).toLocaleString()}</p>
+                          {/* LOGIKA MENGHILANGKAN COST 0 */}
+                          {Number(p.cost) > 0 && (
+                             <p className="text-[10px] font-bold text-blue-500/60 tracking-tight">Cost: Rp{Number(p.cost).toLocaleString()}</p>
+                          )}
                         </div>
                         
                         <div className="flex gap-2">
