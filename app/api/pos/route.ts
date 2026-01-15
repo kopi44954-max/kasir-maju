@@ -5,11 +5,15 @@ import path from 'path';
 const dbPath = path.join(process.cwd(), 'db.json');
 
 const getDB = () => {
-  if (!fs.existsSync(dbPath)) {
-    fs.writeFileSync(dbPath, JSON.stringify({ products: [], transactions: [] }, null, 2));
+  try {
+    if (!fs.existsSync(dbPath)) {
+      fs.writeFileSync(dbPath, JSON.stringify({ products: [], transactions: [] }, null, 2));
+    }
+    const data = fs.readFileSync(dbPath, 'utf8');
+    return JSON.parse(data || '{"products":[], "transactions":[]}');
+  } catch (err) {
+    return { products: [], transactions: [] };
   }
-  const data = fs.readFileSync(dbPath, 'utf8');
-  return JSON.parse(data || '{"products":[], "transactions":[]}');
 };
 
 const saveDB = (db: any) => fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
@@ -25,23 +29,27 @@ export async function POST(req: Request) {
 
     switch (body.type) {
       case 'ADD_PRODUCT':
-        db.products.push({ 
-          id: Date.now().toString(), 
-          ...body.data,
+        const newProduct = {
+          id: Date.now().toString(),
+          name: body.data.name || 'Produk Tanpa Nama',
           price: Number(body.data.price) || 0,
           cost: Number(body.data.cost) || 0,
-          stock: Number(body.data.stock) || 0
-        });
+          stock: Number(body.data.stock) || 0,
+          category: body.data.category || 'UMUM'
+        };
+        db.products.push(newProduct);
         break;
 
       case 'UPDATE_PRODUCT':
-        const idx = db.products.findIndex((p: any) => p.id === body.data.id);
-        if (idx > -1) db.products[idx] = { 
-          ...body.data,
-          price: Number(body.data.price),
-          cost: Number(body.data.cost),
-          stock: Number(body.data.stock)
-        };
+        const pIdx = db.products.findIndex((p: any) => p.id === body.data.id);
+        if (pIdx > -1) {
+          db.products[pIdx] = {
+            ...body.data,
+            price: Number(body.data.price),
+            cost: Number(body.data.cost),
+            stock: Number(body.data.stock)
+          };
+        }
         break;
 
       case 'DELETE_PRODUCT':
@@ -52,25 +60,25 @@ export async function POST(req: Request) {
         const items = body.data.items || [];
         const totalPrice = Number(body.data.totalPrice) || 0;
         
-        // Hitung Modal & Profit secara akurat
+        // Perhitungan Profit Akurat
         const totalCost = items.reduce((acc: number, item: any) => {
           const product = db.products.find((p: any) => p.id === item.id);
-          const costPrice = product ? (Number(product.cost) || 0) : 0;
+          const costPrice = product ? Number(product.cost) : 0;
           return acc + (costPrice * item.qty);
         }, 0);
 
         db.transactions.push({
-          id: `INV-${Date.now()}`,
+          id: `TRX-${Date.now()}`,
           date: new Date().toISOString(),
-          items: items,
-          totalPrice: totalPrice,
+          items,
+          totalPrice,
           profit: totalPrice - totalCost
         });
 
-        // Potong stok otomatis
+        // Update Stok Otomatis
         items.forEach((item: any) => {
           const p = db.products.find((prod: any) => prod.id === item.id);
-          if (p) p.stock = (Number(p.stock) || 0) - item.qty;
+          if (p) p.stock = Math.max(0, (Number(p.stock) || 0) - item.qty);
         });
         break;
 
@@ -86,6 +94,6 @@ export async function POST(req: Request) {
     saveDB(db);
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ success: false }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Operation Failed" }, { status: 500 });
   }
 }
