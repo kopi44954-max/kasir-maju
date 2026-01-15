@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 
-export default function KasirMaju() {
+export default function KasirModern() {
   const [db, setDb] = useState<{products: any[], transactions: any[]}>({ products: [], transactions: [] });
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [pinInput, setPinInput] = useState("");
@@ -16,7 +16,7 @@ export default function KasirMaju() {
       const res = await fetch('/api/pos');
       const data = await res.json();
       setDb(data);
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Gagal load data"); }
   };
 
   useEffect(() => { if (isLoggedIn) fetchData(); }, [isLoggedIn]);
@@ -40,108 +40,148 @@ export default function KasirMaju() {
     }
   };
 
-  // --- TAMPILAN LOGIN ---
+  // --- TAMPILAN LOGIN MODERN ---
   if (!isLoggedIn) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
-        <form onSubmit={handleLogin} style={{ padding: '2rem', backgroundColor: 'white', borderRadius: '1rem', boxShadow: '0 10px 15px rgba(0,0,0,0.1)', width: '300px', textAlign: 'center' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>KASIR MAJU 🔐</h1>
+      <div className="flex items-center justify-center min-h-screen bg-slate-100">
+        <form onSubmit={handleLogin} className="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-sm text-center">
+          <div className="text-5xl mb-4">🔐</div>
+          <h1 className="text-2xl font-black text-slate-800 mb-2">KASIR MAJU</h1>
+          <p className="text-slate-400 mb-8">Silakan masukkan PIN akses</p>
           <input 
             type="password" 
-            placeholder="Masukkan PIN"
-            style={{ width: '100%', padding: '0.75rem', border: '1px solid #ccc', borderRadius: '0.5rem', marginBottom: '1rem', textAlign: 'center', fontSize: '1.25rem' }}
+            placeholder="••••"
+            className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center text-3xl tracking-[1rem] focus:border-blue-500 focus:outline-none transition-all"
             value={pinInput}
             onChange={(e) => setPinInput(e.target.value)}
             autoFocus
           />
-          <button type="submit" style={{ width: '100%', padding: '0.75rem', backgroundColor: '#2563eb', color: 'white', borderRadius: '0.5rem', fontWeight: 'bold', cursor: 'pointer' }}>
-            MASUK
+          <button type="submit" className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-200 transition-all">
+            MASUK SEKARANG
           </button>
-          <p style={{ marginTop: '1rem', color: '#9ca3af', fontSize: '0.875rem' }}>Gunakan PIN: 1234</p>
         </form>
       </div>
     );
   }
 
-  // --- TAMPILAN APLIKASI KASIR ---
+  // --- TAMPILAN KASIR MODERN ---
   return (
-    <div style={{ padding: '20px', maxWidth: '1100px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#2563eb', padding: '15px', borderRadius: '8px', color: 'white', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0 }}>🛒 KASIR MAJU</h2>
-        <button onClick={() => setIsLoggedIn(false)} style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '5px 15px', borderRadius: '5px', cursor: 'pointer' }}>Keluar</button>
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
+      {/* HEADER */}
+      <div className="max-w-7xl mx-auto flex justify-between items-center mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+        <div>
+          <h1 className="text-2xl font-black text-blue-600">KASIR MAJU</h1>
+          <p className="text-slate-400 text-sm font-medium">Sistem Inventaris & Penjualan</p>
+        </div>
+        <button onClick={() => setIsLoggedIn(false)} className="bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2 rounded-xl font-bold transition-all">
+          Logout
+        </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* KOLOM 1: STOK */}
-        <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
-          <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '10px' }}>📦 Inventaris</h3>
-          <div style={{ marginBottom: '15px' }}>
-            <input placeholder="Nama" style={{ width: '100%', padding: '8px', marginBottom: '5px' }} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-            <input placeholder="Harga" type="number" style={{ width: '100%', padding: '8px', marginBottom: '5px' }} value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
-            <input placeholder="Stok" type="number" style={{ width: '100%', padding: '8px', marginBottom: '10px' }} value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} />
-            
+        {/* KOLOM 1: INVENTARIS */}
+        <div className="lg:col-span-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+          <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
+            <span className="p-2 bg-orange-100 rounded-lg text-orange-600">📦</span> Stok Barang
+          </h2>
+          <div className="space-y-3 mb-8">
+            <input placeholder="Nama Produk" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-blue-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+            <div className="grid grid-cols-2 gap-3">
+              <input placeholder="Harga" type="number" className="p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-blue-500" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+              <input placeholder="Stok" type="number" className="p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-blue-500" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} />
+            </div>
             {editingProduct ? (
-              <div style={{ display: 'flex', gap: '5px' }}>
-                <button onClick={() => { saveToCloud('UPDATE_PRODUCT', { data: { ...formData, id: editingProduct.id } }); setEditingProduct(null); setFormData({name:'', price:'', stock:'', category:'UMUM'}); }} style={{ flex: 1, backgroundColor: '#f97316', color: 'white', padding: '10px', border: 'none', borderRadius: '5px' }}>Update</button>
-                <button onClick={() => setEditingProduct(null)} style={{ backgroundColor: '#9ca3af', color: 'white', padding: '10px', border: 'none', borderRadius: '5px' }}>Batal</button>
+              <div className="flex gap-2">
+                <button onClick={() => { saveToCloud('UPDATE_PRODUCT', { data: { ...formData, id: editingProduct.id } }); setEditingProduct(null); setFormData({name:'', price:'', stock:'', category:'UMUM'}); }} className="flex-1 bg-orange-500 text-white p-3 rounded-xl font-bold shadow-lg shadow-orange-100">Simpan Update</button>
+                <button onClick={() => setEditingProduct(null)} className="bg-slate-200 text-slate-600 px-4 rounded-xl">Batal</button>
               </div>
             ) : (
-              <button onClick={() => { saveToCloud('ADD_PRODUCT', { data: formData }); setFormData({name:'', price:'', stock:'', category:'UMUM'}); }} style={{ width: '100%', backgroundColor: '#16a34a', color: 'white', padding: '10px', border: 'none', borderRadius: '5px' }}>+ Tambah</button>
+              <button onClick={() => { saveToCloud('ADD_PRODUCT', { data: formData }); setFormData({name:'', price:'', stock:'', category:'UMUM'}); }} className="w-full bg-blue-600 text-white p-3 rounded-xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">+ Tambah Barang</button>
             )}
           </div>
-          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+          
+          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
             {db.products.map((p: any) => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #eee', fontSize: '14px' }}>
-                <span>{p.name} (Rp{p.price})</span>
+              <div key={p.id} className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
                 <div>
-                  <button onClick={() => { setEditingProduct(p); setFormData({name:p.name, price:p.price, stock:p.stock, category:p.category}); }} style={{ color: 'blue', background: 'none', border: 'none', cursor: 'pointer', marginRight: '10px' }}>Edit</button>
-                  <button onClick={() => saveToCloud('DELETE_PRODUCT', { id: p.id })} style={{ color: 'red', background: 'none', border: 'none', cursor: 'pointer' }}>Hapus</button>
+                  <div className="font-bold text-slate-800">{p.name}</div>
+                  <div className="text-sm text-slate-500 font-medium">Rp {Number(p.price).toLocaleString()} • Stok: {p.stock}</div>
+                </div>
+                <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-all">
+                  <button onClick={() => { setEditingProduct(p); setFormData({name:p.name, price:p.price, stock:p.stock, category:p.category}); }} className="text-blue-600 font-bold text-sm">Edit</button>
+                  <button onClick={() => saveToCloud('DELETE_PRODUCT', { id: p.id })} className="text-red-500 font-bold text-sm">Hapus</button>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* KOLOM 2: PENJUALAN */}
-        <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
-          <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '10px' }}>💰 Jualan</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', marginBottom: '15px' }}>
+        {/* KOLOM 2: KASIR */}
+        <div className="lg:col-span-5 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+          <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
+            <span className="p-2 bg-blue-100 rounded-lg text-blue-600">🛒</span> Area Kasir
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
             {db.products.map((p: any) => (
               <button key={p.id} onClick={() => {
                 const exist = cart.find(x => x.id === p.id);
                 if (exist) setCart(cart.map(x => x.id === p.id ? { ...exist, qty: exist.qty + 1 } : x));
                 else setCart([...cart, { ...p, qty: 1 }]);
-              }} style={{ padding: '10px', fontSize: '12px', cursor: 'pointer' }}>{p.name}</button>
+              }} className="p-4 text-sm font-bold bg-slate-50 hover:bg-blue-500 hover:text-white rounded-2xl border border-slate-100 transition-all text-center">
+                {p.name}
+              </button>
             ))}
           </div>
-          <div style={{ borderTop: '2px solid #eee', paddingTop: '10px' }}>
-            {cart.map((item, i) => <div key={i} style={{ fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}><span>{item.name} x{item.qty}</span><span>Rp{item.price * item.qty}</span></div>)}
-            <h4 style={{ textAlign: 'right', margin: '10px 0' }}>Total: Rp{cart.reduce((a, b) => a + (b.price * b.qty), 0)}</h4>
+          <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
+            <h3 className="font-bold mb-4 text-slate-800">Detail Pesanan</h3>
+            <div className="space-y-3 mb-6 min-h-[100px]">
+              {cart.map((item, i) => (
+                <div key={i} className="flex justify-between items-center text-sm font-medium">
+                  <span className="text-slate-600">{item.name} <span className="text-blue-500">x{item.qty}</span></span>
+                  <span className="text-slate-800 font-bold">Rp {(item.price * item.qty).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-slate-200 pt-4 mb-6">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-xs">Total Bayar</span>
+                <span className="text-2xl font-black text-blue-600">Rp {cart.reduce((a, b) => a + (b.price * b.qty), 0).toLocaleString()}</span>
+              </div>
+            </div>
             <button onClick={async () => {
               const trans = { id: Date.now(), date: new Date().toLocaleString(), items: cart, total: cart.reduce((a, b) => a + (b.price * b.qty), 0) };
               await saveToCloud('TRANSACTION', { cart, transaction: trans });
               setCart([]);
-              alert("Sukses!");
-            }} disabled={cart.length === 0} style={{ width: '100%', padding: '15px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>BAYAR</button>
+              alert("Pembayaran Berhasil!");
+            }} disabled={cart.length === 0} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-100 disabled:bg-slate-200 disabled:shadow-none transition-all">
+              SELESAIKAN PESANAN
+            </button>
           </div>
         </div>
 
-        {/* KOLOM 3: RIWAYAT */}
-        <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-            <h3 style={{ margin: 0 }}>📊 Riwayat</h3>
-            <button onClick={() => saveToCloud('DELETE_ALL_TRANSACTIONS', {})} style={{ fontSize: '10px', color: 'red' }}>Hapus Semua</button>
+        {/* KOLOM 3: LAPORAN */}
+        <div className="lg:col-span-3 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <span className="p-2 bg-purple-100 rounded-lg text-purple-600">📊</span> Laporan
+            </h2>
+            <button onClick={() => { if(confirm('Hapus semua riwayat?')) saveToCloud('DELETE_ALL_TRANSACTIONS', {}) }} className="text-xs font-bold text-red-400 hover:text-red-600 transition-all">Reset</button>
           </div>
-          <div style={{ maxHeight: '450px', overflowY: 'auto' }}>
+          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
             {db.transactions.slice().reverse().map((t: any) => (
-              <div key={t.id} style={{ padding: '10px', backgroundColor: '#f9fafb', marginBottom: '10px', borderRadius: '5px', fontSize: '11px' }}>
-                <div style={{ fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-                   <span>{t.date}</span>
-                   <button onClick={() => saveToCloud('DELETE_TRANSACTION', { id: t.id })} style={{ color: 'red', border: 'none', background: 'none' }}>x</button>
+              <div key={t.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 relative group">
+                <button onClick={() => saveToCloud('DELETE_TRANSACTION', { id: t.id })} className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">×</button>
+                <div className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-widest">{t.date}</div>
+                {t.items.map((it: any, i: number) => (
+                  <div key={i} className="text-xs text-slate-600 flex justify-between">
+                    <span>{it.name} (x{it.qty})</span>
+                  </div>
+                ))}
+                <div className="mt-2 text-sm font-black text-slate-800 border-t border-slate-200 pt-2 flex justify-between">
+                  <span>Total</span>
+                  <span>Rp {t.total.toLocaleString()}</span>
                 </div>
-                {t.items.map((it: any, i: number) => <div key={i}>{it.name} x{it.qty}</div>)}
-                <div style={{ textAlign: 'right', fontWeight: 'bold', marginTop: '5px' }}>Rp{t.total}</div>
               </div>
             ))}
           </div>
