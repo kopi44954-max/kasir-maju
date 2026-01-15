@@ -1,58 +1,51 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import fs from 'fs';
+import path from 'path';
+
+const filePath = path.join(process.cwd(), 'db.json');
+
+const readDb = () => {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(content || '{"products":[], "transactions":[]}');
+  } catch {
+    return { products: [], transactions: [] };
+  }
+};
 
 export async function GET() {
-  // Gunakan as any[] atau berikan default value array kosong untuk mencegah error .map()
-  const products = (await kv.get<any[]>('toko_rahma_products')) || [];
-  const transactions = (await kv.get<any[]>('toko_rahma_transactions')) || [];
-  
-  // Sekarang TypeScript tahu 'products' adalah array
-  const categories = Array.from(new Set(products.map((p: any) => p.category)));
-  
-  return NextResponse.json({ 
-    products, 
-    transactions, 
-    categories: categories.length > 0 ? categories : ["UMUM"] 
-  });
+  const data = readDb();
+  return NextResponse.json(data);
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  let products = (await kv.get<any[]>('toko_rahma_products')) || [];
-  let transactions = (await kv.get<any[]>('toko_rahma_transactions')) || [];
+  try {
+    const body = await req.json();
+    const data = readDb();
 
-  switch (body.type) {
-    case 'TRANSACTION':
+    if (body.type === 'TRANSACTION') {
+      data.transactions.unshift(body.transaction);
       body.cart.forEach((item: any) => {
-        const idx = products.findIndex((p: any) => p.id === item.id);
-        if (idx !== -1) products[idx].stock = Number(products[idx].stock) - Number(item.qty);
+        const p = data.products.find((p: any) => p.id === item.id);
+        if (p) p.stock -= item.qty;
       });
-      transactions.unshift(body.transaction);
-      await kv.set('toko_rahma_products', products);
-      await kv.set('toko_rahma_transactions', transactions);
-      break;
-    case 'ADD_PRODUCT':
-      products.push({ ...body.data, id: Date.now() });
-      await kv.set('toko_rahma_products', products);
-      break;
-    case 'UPDATE_PRODUCT':
-      products = products.map((p: any) => p.id === body.data.id ? body.data : p);
-      await kv.set('toko_rahma_products', products);
-      break;
-    case 'DELETE_PRODUCT':
-      products = products.filter((p: any) => p.id !== body.id);
-      await kv.set('toko_rahma_products', products);
-      break;
-    case 'DELETE_ALL_PRODUCTS':
-      await kv.set('toko_rahma_products', []);
-      break;
-    case 'DELETE_TRANSACTION':
-      transactions = transactions.filter((t: any) => t.id !== body.id);
-      await kv.set('toko_rahma_transactions', transactions);
-      break;
-    case 'DELETE_ALL_TRANSACTIONS':
-      await kv.set('toko_rahma_transactions', []);
-      break;
+    }
+
+    if (body.type === 'ADD_PRODUCT') {
+      data.products.push({ ...body.data, id: Date.now() });
+    }
+
+    if (body.type === 'UPDATE_PRODUCT') {
+      data.products = data.products.map((p: any) => p.id === body.data.id ? body.data : p);
+    }
+
+    if (body.type === 'DELETE_PRODUCT') {
+      data.products = data.products.filter((p: any) => p.id !== body.id);
+    }
+
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    return NextResponse.json({ error: "Gagal menyimpan" }, { status: 500 });
   }
-  return NextResponse.json({ success: true });
 }
