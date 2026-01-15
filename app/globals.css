@@ -2,36 +2,23 @@
 
 @theme {
   --font-sans: var(--font-poppins), ui-sans-serif, system-ui;
+  --radius-xl: 12px;
+  --radius-2xl: 18px;
 }
 
-:root {
-  --font-poppins: 'Poppins', sans-serif;
+:root { --font-poppins: 'Poppins', sans-serif; }
+
+@layer base {
+  body { font-family: var(--font-poppins); }
 }
 
-body {
-  background-color: #07080A;
-  color: #cbd5e1; /* slate-300 */
-  font-family: var(--font-poppins);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Utilitas Tambahan */
 @utility no-scrollbar {
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  &::-webkit-scrollbar { display: none; }
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-/* Menghilangkan Spinner di Input Number */
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-input[type=number] {
-  -moz-appearance: textfield;
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; margin: 0; 
 }

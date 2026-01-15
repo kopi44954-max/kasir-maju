@@ -10,7 +10,7 @@ const poppins = Poppins({
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" className={`${poppins.variable}`}>
-      <body className="antialiased bg-[#07080A] text-slate-300 font-sans">
+      <body className="bg-[#07080A] text-slate-300 antialiased font-sans">
         {children}
       </body>
     </html>
