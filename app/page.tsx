@@ -1,164 +1,305 @@
 "use client";
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { 
+  ShoppingCart, Search, Plus, Minus, CheckCircle2, 
+  History, Trash2, Printer, Loader2, X, Settings 
+} from 'lucide-react';
 
-export default function KasirFuturistik() {
-  // State awal harus didefinisikan dengan benar
-  const [db, setDb] = useState<{products: any[], transactions: any[]}>({ products: [], transactions: [] });
+export default function NexusPOS() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [cart, setCart] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [activeCat, setActiveCat] = useState("SADAYA");
+  const [cash, setCash] = useState<number | string>("");
+  const [success, setSuccess] = useState(false);
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [formData, setFormData] = useState({ name: '', price: '', stock: '', category: 'UMUM' });
+  const [mounted, setMounted] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
-  const fetchData = async () => {
+  // FUNGSI LOAD DATA DENGAN PENGAMAN (ANTI-ERROR)
+  const loadData = useCallback(async () => {
     try {
-      const res = await fetch('/api/pos');
+      setLoading(true);
+      const res = await fetch('/api/pos', { cache: 'no-store' });
       const data = await res.json();
-      // Pastikan data yang masuk memiliki struktur yang benar
-      setDb({
-        products: data?.products || [],
-        transactions: data?.transactions || []
-      });
-    } catch (e) {
-      console.error("Fetch error:", e);
-    } finally {
-      setLoading(false);
+      
+      // Ambil produk dan pastikan itu array
+      const productList = data.products || [];
+      setProducts(productList);
+      
+      // Ambil kategori unik secara otomatis dari produk
+      const uniqueCats: string[] = Array.from(new Set(productList.map((p: any) => p.category)));
+      setCategories(["SADAYA", ...uniqueCats]);
+    } catch (err) { 
+      console.error("Gagal memuat data:", err); 
+    } finally { 
+      setLoading(false); 
     }
-  };
-
-  useEffect(() => {
-    fetchData();
   }, []);
 
-  const saveToCloud = async (type: string, payload: any) => {
-    try {
-      await fetch('/api/pos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, ...payload })
+  useEffect(() => { 
+    setMounted(true); 
+    loadData(); 
+  }, [loadData]);
+
+  const addToCart = (p: any) => {
+    if (p.stock <= 0) return;
+    setCart(prev => {
+      const exist = prev.find(i => i.id === p.id);
+      if (exist) return prev.map(i => i.id === p.id ? { ...i, qty: Math.min(Number(i.qty) + 1, p.stock) } : i);
+      return [...prev, { ...p, qty: 1 }];
+    });
+  };
+
+  const updateQty = (id: number, delta: number, stock: number) => {
+    setCart(prev => {
+      const updated = prev.map(i => {
+        if (i.id === id) {
+          const newQty = Math.min(Math.max(0, (Number(i.qty) || 0) + delta), stock);
+          return { ...i, qty: newQty };
+        }
+        return i;
       });
-      fetchData();
-    } catch (e) {
-      alert("Gagal menyimpan ke cloud");
+      return updated.filter(i => i.qty > 0);
+    });
+  };
+
+  const handleManualInput = (id: number, value: string, stock: number) => {
+    if (value === "") {
+      setCart(prev => prev.map(i => i.id === id ? { ...i, qty: "" as any } : i));
+      return;
+    }
+    const val = parseInt(value);
+    if (isNaN(val)) return;
+    const safeVal = Math.min(Math.max(0, val), stock);
+    setCart(prev => prev.map(i => i.id === id ? { ...i, qty: safeVal } : i));
+  };
+
+  const handleBlur = (id: number, qty: any) => {
+    if (qty === "" || qty === 0) {
+      setCart(prev => prev.filter(i => i.id !== id));
     }
   };
 
-  // PENGAMAN: Jika data sedang loading, tampilkan layar loading
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0f1d] flex items-center justify-center">
-        <div className="text-cyan-500 font-mono animate-pulse">SYSTEM INITIALIZING...</div>
-      </div>
-    );
-  }
+  const total = cart.reduce((acc, i) => acc + (Number(i.price) * (Number(i.qty) || 0)), 0);
+  const changeAmount = Number(cash) > 0 ? Number(cash) - total : 0;
+  const invoiceNum = mounted ? `INV-${Date.now()}` : '';
+
+  const finalizeTransaction = async (shouldPrint: boolean) => {
+    if (shouldPrint) setTimeout(() => { window.print(); }, 150);
+    const trx = { 
+      id: invoiceNum, 
+      items: cart, 
+      totalPrice: total, 
+      cash: Number(cash), 
+      change: changeAmount, 
+      date: new Date().toLocaleString('id-ID') 
+    };
+
+    try {
+      const res = await fetch('/api/pos', { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({ type: 'TRANSACTION', cart, transaction: trx }) 
+      });
+      
+      if (res.ok) {
+        setShowPrintConfirm(false);
+        setSuccess(true);
+        setTimeout(() => { 
+          setSuccess(false); 
+          setCart([]); 
+          setCash(""); 
+          setIsCartOpen(false); 
+          loadData(); 
+        }, 1500);
+      }
+    } catch (err) { alert("Koneksi gagal!"); }
+  };
+
+  if (!mounted) return null;
+
+  const filtered = products.filter(p => 
+    (activeCat === "SADAYA" || p.category === activeCat) && 
+    p.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div className="min-h-screen bg-[#0a0f1d] text-slate-200 p-4 md:p-8 font-sans">
-      <div className="fixed top-0 left-1/4 w-96 h-96 bg-cyan-500/10 blur-[120px] rounded-full -z-10"></div>
+    <div className="h-screen w-full bg-[#0A0C10] text-slate-300 font-sans select-none overflow-hidden flex flex-col md:flex-row">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media screen { .print-only { display: none !important; } }
+        @media print {
+          .no-print { display: none !important; }
+          .print-only { display: block !important; width: 58mm; background: white; color: black; padding: 4mm; font-family: monospace; font-size: 9pt; }
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+      `}} />
 
-      {/* HEADER */}
-      <div className="max-w-7xl mx-auto flex justify-between items-center mb-8 bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-2xl">
-        <h1 className="text-3xl font-black bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent tracking-tighter">NEO KASIR</h1>
-        <div className="text-right">
-          <div className="text-[10px] text-cyan-500 font-bold tracking-widest uppercase">Cloud Connection Status</div>
-          <div className="text-xs text-green-400 font-mono">● ENCRYPTED & STABLE</div>
-        </div>
+      {/* STRUK PRINT 58MM */}
+      <div className="print-only">
+        <center>
+          <h2 style={{ margin: 0 }}>TOKO RAHMA</h2>
+          <p style={{ fontSize: '8pt' }}>{new Date().toLocaleString('id-ID')}</p>
+        </center>
+        <div style={{ borderTop: '1px dashed black', margin: '2mm 0' }}></div>
+        {cart.map(i => (
+          <div key={i.id} style={{ marginBottom: '1mm' }}>
+            <div>{i.name.toUpperCase()}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>{i.qty} x {Number(i.price).toLocaleString()}</span>
+              <span>{(i.price * i.qty).toLocaleString()}</span>
+            </div>
+          </div>
+        ))}
+        <div style={{ borderTop: '1px dashed black', margin: '2mm 0' }}></div>
+        <div style={{ fontWeight: 'bold' }}>TOTAL: Rp {total.toLocaleString()}</div>
+        <div>TUNAI: Rp {Number(cash).toLocaleString()}</div>
+        <div>KEMBALI: Rp {changeAmount.toLocaleString()}</div>
       </div>
 
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* KOLOM 1: INVENTARIS */}
-        <div className="lg:col-span-4 bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-xl">
-          <h2 className="text-xs font-black mb-6 text-cyan-400 tracking-widest uppercase flex items-center gap-2">
-            <span className="w-2 h-2 bg-cyan-400 shadow-[0_0_10px_cyan]"></span> Management
-          </h2>
-          
-          <div className="space-y-3 mb-8 bg-black/20 p-4 rounded-2xl">
-            <input placeholder="PRODUCT NAME" className="w-full p-3 bg-black/40 border border-white/5 rounded-xl focus:border-cyan-500/50 outline-none text-sm" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-            <div className="grid grid-cols-2 gap-3">
-              <input placeholder="PRICE" type="number" className="p-3 bg-black/40 border border-white/5 rounded-xl focus:border-cyan-500/50 outline-none text-sm" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
-              <input placeholder="STOCK" type="number" className="p-3 bg-black/40 border border-white/5 rounded-xl focus:border-cyan-500/50 outline-none text-sm" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} />
-            </div>
-            {editingProduct ? (
-              <div className="flex gap-2">
-                <button onClick={() => { saveToCloud('UPDATE_PRODUCT', { data: { ...formData, id: editingProduct.id } }); setEditingProduct(null); setFormData({name:'', price:'', stock:'', category:'UMUM'}); }} className="flex-1 bg-cyan-500 text-black font-black p-3 rounded-xl uppercase text-xs tracking-widest">Update</button>
-                <button onClick={() => setEditingProduct(null)} className="bg-white/10 px-4 rounded-xl text-xs">Batal</button>
+      {/* SIDEBAR NAVIGATION */}
+      <nav className="no-print fixed bottom-0 left-0 w-full h-16 md:relative md:w-20 md:h-full bg-[#0F1218] border-t md:border-t-0 md:border-r border-white/5 flex items-center justify-around md:flex-col md:justify-start md:pt-8 md:gap-6 z-[100] shrink-0">
+        <Link href="/history" className="p-3 text-slate-500 hover:text-white transition-all hover:bg-white/5 rounded-xl"><History size={22}/></Link>
+        <button onClick={() => setIsCartOpen(true)} className="relative p-4 bg-emerald-600 text-white rounded-xl shadow-lg active:scale-95 md:hidden">
+          <ShoppingCart size={24}/>
+          {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-rose-500 text-[10px] w-5 h-5 rounded-lg flex items-center justify-center font-bold border-2 border-[#0F1218]">{cart.length}</span>}
+        </button>
+        <Link href="/settings" className="p-3 text-slate-500 hover:text-blue-400 transition-all hover:bg-white/5 rounded-xl"><Settings size={22}/></Link>
+      </nav>
+
+      {/* MAIN CONTENT */}
+      <main className="no-print flex-1 flex flex-col h-full overflow-hidden">
+        <header className="h-16 bg-[#0A0C10]/90 backdrop-blur-xl border-b border-white/5 px-6 flex items-center justify-between shrink-0">
+          <h1 className="text-lg font-bold text-white tracking-tight italic">TOKO<span className="text-emerald-500 font-black">RAHMA</span></h1>
+          <div className="flex-1 max-w-xs ml-6 relative">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+             <input type="text" placeholder="Cari produk..." className="w-full pl-10 pr-4 py-2 bg-white/[0.03] border border-white/10 rounded-xl text-sm outline-none focus:border-emerald-500/50 transition-all" onChange={e => setSearch(e.target.value)} />
+          </div>
+        </header>
+
+        <div className="flex gap-2 p-4 bg-[#0A0C10] overflow-x-auto no-scrollbar shrink-0">
+          {categories.map(c => (
+            <button key={c} onClick={() => setActiveCat(c)} className={`px-5 py-2 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all border ${activeCat === c ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>{c}</button>
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-24 md:pb-6 no-scrollbar">
+          {loading ? (
+            <div className="col-span-full py-20 flex justify-center"><Loader2 className="animate-spin text-emerald-500" /></div>
+          ) : filtered.map(p => (
+            <button key={p.id} onClick={() => addToCart(p)} disabled={p.stock <= 0} className="group h-44 flex flex-col bg-[#0F1218] border border-white/5 p-4 rounded-xl text-left hover:border-emerald-500/30 transition-all disabled:opacity-40 relative overflow-hidden">
+              <div className="flex justify-between items-start mb-2">
+                 <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded uppercase tracking-tighter">{p.category}</span>
+                 <span className={`text-[10px] font-bold ${p.stock < 10 ? 'text-rose-500' : 'text-slate-500'}`}>SISA: {p.stock}</span>
               </div>
-            ) : (
-              <button onClick={() => { saveToCloud('ADD_PRODUCT', { data: formData }); setFormData({name:'', price:'', stock:'', category:'UMUM'}); }} className="w-full bg-cyan-600 text-white p-3 rounded-xl font-black uppercase text-xs tracking-widest">Register Item</button>
+              <h3 className="font-bold text-xs text-white line-clamp-2 mb-2 leading-snug flex-1 uppercase tracking-tight">{p.name}</h3>
+              <div className="flex items-center justify-between">
+                <p className="font-black text-white tracking-tighter text-sm italic">Rp{Number(p.price).toLocaleString()}</p>
+                <div className="p-1.5 bg-emerald-600/10 text-emerald-500 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-all"><Plus size={14} /></div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </main>
+
+      {/* CHECKOUT SIDEBAR */}
+      <section className={`no-print fixed inset-0 z-[200] md:relative md:inset-auto md:flex md:w-[380px] bg-[#0F1218] md:border-l border-white/5 transition-all duration-500 flex flex-col h-full ${isCartOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}`}>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-white/5 shrink-0">
+          <div className="flex items-center gap-3">
+             <ShoppingCart size={18} className="text-emerald-500"/>
+             <h2 className="text-xs font-black text-white uppercase tracking-[0.2em]">Keranjang</h2>
+          </div>
+          <button onClick={() => setIsCartOpen(false)} className="md:hidden p-2 text-slate-500"><X size={24}/></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-3 no-scrollbar">
+            {cart.map(i => (
+              <div key={i.id} className="bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                <div className="flex justify-between items-start mb-3">
+                  <p className="text-[10px] font-black text-white uppercase line-clamp-1 flex-1 pr-2 tracking-tight">{i.name}</p>
+                  <button onClick={() => setCart(cart.filter(c => c.id !== i.id))} className="text-slate-700 hover:text-rose-500 transition-colors"><Trash2 size={14}/></button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center bg-[#0A0C10] rounded-lg border border-white/5 p-1">
+                    <button onClick={() => updateQty(i.id, -1, i.stock)} className="w-7 h-7 flex items-center justify-center hover:bg-white/5 rounded-md text-slate-400"><Minus size={12}/></button>
+                    <input 
+                      type="number" 
+                      value={i.qty} 
+                      onChange={(e) => handleManualInput(i.id, e.target.value, i.stock)}
+                      onBlur={() => handleBlur(i.id, i.qty)}
+                      className="w-10 text-center bg-transparent text-xs font-black text-emerald-500 outline-none" 
+                    />
+                    <button onClick={() => updateQty(i.id, 1, i.stock)} className="w-7 h-7 flex items-center justify-center hover:bg-white/5 rounded-md text-slate-400"><Plus size={12}/></button>
+                  </div>
+                  <p className="text-sm font-black text-white italic tracking-tighter">Rp{((Number(i.qty) || 0) * i.price).toLocaleString()}</p>
+                </div>
+              </div>
+            ))}
+            {cart.length === 0 && (
+              <div className="h-full flex flex-col items-center justify-center text-slate-700 opacity-20 mt-20">
+                <ShoppingCart size={64} className="mb-4" />
+                <p className="font-black uppercase tracking-widest text-xs">Kosong</p>
+              </div>
             )}
+        </div>
+
+        {/* PAYMENT FOOTER */}
+        <div className="bg-[#14181F] border-t border-white/10 p-6 space-y-4 shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.4)]">
+          <div className="flex justify-between items-end">
+            <span className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Total_Tagihan</span>
+            <span className="text-emerald-500 font-black text-3xl tracking-tighter italic">Rp{total.toLocaleString()}</span>
           </div>
           
-          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-            {db.products?.map((p: any) => (
-              <div key={p.id} className="flex justify-between items-center p-4 bg-white/[0.02] rounded-2xl border border-white/5 group hover:bg-white/[0.05] transition-all">
-                <div className="text-sm font-bold">{p.name} <span className="text-[10px] text-cyan-600 block">STOCK: {p.stock}</span></div>
-                <div className="flex gap-4">
-                  <button onClick={() => { setEditingProduct(p); setFormData({name:p.name, price:p.price, stock:p.stock, category:p.category}); }} className="text-cyan-500 text-[10px] font-bold">EDIT</button>
-                  <button onClick={() => { if(confirm('Hapus?')) saveToCloud('DELETE_PRODUCT', { id: p.id }) }} className="text-rose-500 text-[10px] font-bold">DEL</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* KOLOM 2: TERMINAL KASIR */}
-        <div className="lg:col-span-5 bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-xl">
-          <h2 className="text-xs font-black mb-6 text-blue-400 tracking-widest uppercase flex items-center gap-2">
-            <span className="w-2 h-2 bg-blue-400 shadow-[0_0_10px_blue]"></span> Terminal
-          </h2>
-          <div className="grid grid-cols-2 gap-2 mb-8">
-            {db.products?.map((p: any) => (
-              <button key={p.id} onClick={() => {
-                const exist = cart.find(x => x.id === p.id);
-                if (exist) setCart(cart.map(x => x.id === p.id ? { ...exist, qty: exist.qty + 1 } : x));
-                else setCart([...cart, { ...p, qty: 1 }]);
-              }} className="p-3 text-[10px] font-bold bg-white/5 hover:bg-cyan-500 hover:text-black rounded-xl border border-white/5 transition-all uppercase">
-                {p.name} (Rp{p.price})
-              </button>
-            ))}
-          </div>
-
-          <div className="bg-black/60 rounded-3xl p-6 border border-cyan-500/20">
-            <div className="space-y-2 mb-6 min-h-[100px]">
-              {cart.map((item, i) => (
-                <div key={i} className="flex justify-between text-xs font-mono">
-                  <span className="text-slate-400">{item.name} x{item.qty}</span>
-                  <span>{(item.price * item.qty).toLocaleString()}</span>
-                </div>
-              ))}
+          <div className="space-y-2">
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600">TUNAI</span>
+              <input type="number" inputMode="numeric" value={cash} onChange={e => setCash(e.target.value)} className="w-full h-14 bg-[#0A0C10] border border-white/10 rounded-xl pl-16 pr-4 text-white font-black text-xl outline-none focus:border-emerald-500/40 transition-all shadow-inner" placeholder="0" />
             </div>
-            <div className="flex justify-between items-end mb-6 pt-4 border-t border-white/10">
-              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Total Bill</span>
-              <span className="text-2xl font-black text-cyan-400">Rp {cart.reduce((a, b) => a + (b.price * b.qty), 0).toLocaleString()}</span>
+            <div className="flex justify-between items-center px-4 py-3 bg-white/[0.02] rounded-xl border border-white/5">
+              <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Kembali</span>
+              <span className={`text-lg font-black italic tracking-tighter ${changeAmount >= 0 ? 'text-yellow-500' : 'text-rose-500'}`}>Rp{changeAmount.toLocaleString()}</span>
             </div>
-            <button onClick={async () => {
-              const total = cart.reduce((a, b) => a + (b.price * b.qty), 0);
-              const trans = { id: Date.now(), date: new Date().toLocaleString(), items: cart, total };
-              await saveToCloud('TRANSACTION', { cart, transaction: trans });
-              setCart([]);
-              alert("TRANSACTION SUCCESS");
-            }} disabled={cart.length === 0} className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-black py-4 rounded-2xl uppercase tracking-widest text-xs disabled:bg-slate-800">Execute Order</button>
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={() => {setCart([]); setCash("");}} className="px-5 py-4 bg-white/5 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-rose-500/10 hover:text-rose-500 transition-all">Clear</button>
+            <button onClick={() => setShowPrintConfirm(true)} disabled={cart.length === 0 || Number(cash) < total} className="flex-1 py-4 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] disabled:opacity-10 active:scale-95 shadow-xl shadow-emerald-900/40 hover:bg-emerald-500 transition-all">Selesaikan Transaksi</button>
           </div>
         </div>
+      </section>
 
-        {/* KOLOM 3: LOGS */}
-        <div className="lg:col-span-3 bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-xl">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xs font-black text-purple-400 tracking-widest uppercase">Logs</h2>
-            <button onClick={() => saveToCloud('DELETE_ALL_TRANSACTIONS', {})} className="text-[9px] text-rose-500 font-bold uppercase">Wipe</button>
-          </div>
-          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-            {db.transactions?.slice().reverse().map((t: any) => (
-              <div key={t.id} className="p-4 bg-black/40 rounded-2xl border border-white/5 relative group">
-                <button onClick={() => saveToCloud('DELETE_TRANSACTION', { id: t.id })} className="absolute top-2 right-2 text-slate-600 hover:text-red-500">×</button>
-                <div className="text-[9px] text-purple-500 mb-2">{t.date}</div>
-                <div className="text-[10px] text-slate-300">Rp {t.total.toLocaleString()}</div>
-              </div>
-            ))}
+      {/* MODAL PRINT */}
+      {showPrintConfirm && (
+        <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 no-print">
+          <div className="bg-[#0F1218] border border-white/10 w-full max-w-xs rounded-3xl p-8 text-center shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+            <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+               <Printer size={32} className="text-emerald-500" />
+            </div>
+            <h2 className="text-sm font-black text-white mb-8 uppercase tracking-[0.3em]">Cetak Struk?</h2>
+            <div className="space-y-3">
+              <button onClick={() => finalizeTransaction(true)} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-900/40">Ya, Cetak & Simpan</button>
+              <button onClick={() => finalizeTransaction(false)} className="w-full py-4 bg-white/5 text-slate-400 rounded-2xl font-black text-[10px] uppercase border border-white/5 hover:bg-white/10 transition-all">Simpan Tanpa Struk</button>
+              <button onClick={() => setShowPrintConfirm(false)} className="block w-full pt-6 text-[9px] text-slate-600 font-black uppercase tracking-widest hover:text-slate-400">Kembali</button>
+            </div>
           </div>
         </div>
+      )}
 
-      </div>
+      {/* SUCCESS POPUP */}
+      {success && (
+        <div className="fixed inset-0 z-[400] bg-[#0A0C10] flex items-center justify-center no-print animate-in fade-in duration-300">
+          <div className="text-center">
+            <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/30">
+               <CheckCircle2 size={48} className="text-emerald-500 animate-bounce" />
+            </div>
+            <h2 className="text-2xl font-black text-white tracking-[0.3em] uppercase italic">Transaksi Berhasil</h2>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
