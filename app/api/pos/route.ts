@@ -1,33 +1,30 @@
-import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { Redis } from '@upstash/redis'
+import { NextResponse } from 'next/server'
 
-const filePath = path.join(process.cwd(), 'db.json');
-
-const readDb = () => {
-  try {
-    const content = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(content || '{"products":[], "transactions":[]}');
-  } catch {
-    return { products: [], transactions: [] };
-  }
-};
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+})
 
 export async function GET() {
-  const data = readDb();
-  return NextResponse.json(data);
+  try {
+    const data: any = await redis.get('toko_rahma_db');
+    return NextResponse.json(data || { products: [], transactions: [] });
+  } catch (error) {
+    return NextResponse.json({ products: [], transactions: [] });
+  }
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const data = readDb();
+    let data: any = await redis.get('toko_rahma_db') || { products: [], transactions: [] };
 
     if (body.type === 'TRANSACTION') {
       data.transactions.unshift(body.transaction);
       body.cart.forEach((item: any) => {
         const p = data.products.find((p: any) => p.id === item.id);
-        if (p) p.stock -= item.qty;
+        if (p) p.stock = Number(p.stock) - Number(item.qty);
       });
     }
 
@@ -43,9 +40,9 @@ export async function POST(req: Request) {
       data.products = data.products.filter((p: any) => p.id !== body.id);
     }
 
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    await redis.set('toko_rahma_db', JSON.stringify(data));
     return NextResponse.json({ success: true });
   } catch (e) {
-    return NextResponse.json({ error: "Gagal menyimpan" }, { status: 500 });
+    return NextResponse.json({ error: "Gagal" }, { status: 500 });
   }
 }
