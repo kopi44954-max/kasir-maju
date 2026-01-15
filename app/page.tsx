@@ -1,9 +1,9 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, Search, History, Loader2, X, Settings, ShoppingBag, CheckCircle2, Trash2 } from 'lucide-react';
+import { ShoppingCart, Search, History, Loader2, X, Settings, ShoppingBag, CheckCircle2, Trash2, Home } from 'lucide-react';
 
-export default function NexusPOS() {
+export default function TokopediaPOS() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [cart, setCart] = useState<any[]>([]);
@@ -52,101 +52,120 @@ export default function NexusPOS() {
   const filtered = products.filter(p => (activeCat === "SEMUA" || p.category === activeCat) && p.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-[#07080A] overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-[#F0F3F7] overflow-hidden text-[#212121]">
       
-      {/* NAV SIDEBAR (Desktop) / NAV BOTTOM (Mobile) */}
-      <nav className="fixed bottom-0 left-0 right-0 md:relative md:w-20 bg-[#0F1218] border-t md:border-t-0 md:border-r border-white/5 flex md:flex-col items-center justify-around md:justify-start py-4 md:py-8 z-[60] shadow-2xl">
-        <div className="hidden md:flex w-12 h-12 bg-emerald-500 rounded-2xl items-center justify-center text-black mb-8 shadow-lg shadow-emerald-500/20"><ShoppingBag size={24}/></div>
-        <Link href="/" className="p-3 text-emerald-500 bg-emerald-500/10 rounded-xl border border-emerald-500/20"><ShoppingCart size={24}/></Link>
-        <Link href="/history" className="p-3 text-slate-500 hover:text-emerald-500 transition-all"><History size={24}/></Link>
-        <Link href="/settings" className="p-3 text-slate-500 hover:text-emerald-500 transition-all"><Settings size={24}/></Link>
+      {/* SIDEBAR NAV (Desktop) */}
+      <nav className="hidden md:flex flex-col w-20 bg-white border-r border-gray-200 py-6 items-center gap-8 z-50">
+        <div className="w-12 h-12 bg-[#00AA5B] rounded-xl flex items-center justify-center text-white shadow-md shadow-green-200"><ShoppingBag size={24}/></div>
+        <div className="flex flex-col gap-6">
+          <Link href="/" className="p-3 text-[#00AA5B] bg-green-50 rounded-xl transition-all border border-green-100"><Home size={24}/></Link>
+          <Link href="/history" className="p-3 text-gray-400 hover:text-[#00AA5B] transition-all"><History size={24}/></Link>
+          <Link href="/settings" className="p-3 text-gray-400 hover:text-[#00AA5B] transition-all"><Settings size={24}/></Link>
+        </div>
       </nav>
 
-      {/* MAIN SECTION */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden pb-20 md:pb-0">
-        <header className="px-6 py-4 md:px-8 md:py-6 flex flex-col gap-4 bg-[#07080A]">
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl md:text-2xl font-black italic text-white uppercase tracking-tighter">Rahma<span className="text-emerald-500">POS.</span></h1>
-            {/* Cart Trigger Mobile */}
-            <button onClick={() => setIsCartOpen(true)} className="md:hidden relative p-2 bg-emerald-500 text-black rounded-xl">
+      {/* MAIN CONTENT */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden pb-16 md:pb-0">
+        <header className="px-6 py-4 bg-white shadow-sm flex flex-col md:flex-row gap-4 items-center z-40">
+          <div className="flex w-full md:w-auto justify-between items-center">
+            <h1 className="text-xl font-bold text-[#00AA5B] tracking-tight">Rahma<span className="text-[#212121]">pedia.</span></h1>
+            <button onClick={() => setIsCartOpen(true)} className="md:hidden relative p-2 text-[#00AA5B] bg-green-50 rounded-lg">
               <ShoppingCart size={20}/>
-              {cart.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-emerald-500">{cart.length}</span>}
+              {cart.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">{cart.length}</span>}
             </button>
           </div>
-          <div className="relative group w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18}/>
-            <input onChange={e=>setSearch(e.target.value)} placeholder="Cari barang..." className="w-full bg-[#0F1218] border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm outline-none focus:border-emerald-500/50 transition-all"/>
+          <div className="relative w-full max-w-2xl">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
+            <input onChange={e=>setSearch(e.target.value)} placeholder="Cari di Rahmapedia" className="w-full bg-white border border-gray-300 rounded-lg pl-11 pr-4 py-2 text-sm outline-none focus:border-[#00AA5B] transition-all"/>
           </div>
         </header>
 
         {/* CATEGORIES */}
-        <div className="px-6 md:px-8 flex gap-2 overflow-x-auto no-scrollbar shrink-0 mb-4">
+        <div className="px-6 py-4 flex gap-2 overflow-x-auto no-scrollbar bg-white shrink-0 border-b border-gray-100">
           {categories.map(c => (
-            <button key={c} onClick={()=>setActiveCat(c)} className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all whitespace-nowrap ${activeCat === c ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-[#0F1218] border-white/5 text-slate-500'}`}>{c}</button>
+            <button key={c} onClick={()=>setActiveCat(c)} className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap ${activeCat === c ? 'bg-[#00AA5B] border-[#00AA5B] text-white shadow-md shadow-green-100' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}>{c}</button>
           ))}
         </div>
 
         {/* PRODUCTS GRID */}
-        <div className="flex-1 overflow-y-auto px-6 md:px-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 pb-10 content-start">
-          {loading ? <Loader2 className="animate-spin mx-auto col-span-full opacity-20 mt-20" size={32}/> : 
+        <div className="flex-1 overflow-y-auto px-4 py-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 content-start">
+          {loading ? <Loader2 className="animate-spin mx-auto col-span-full text-[#00AA5B] mt-20" size={32}/> : 
           filtered.map(p=>(
-            <button key={p.id} onClick={()=>addToCart(p)} disabled={p.stock<=0} className={`group bg-[#0F1218] border border-white/5 p-3 md:p-4 rounded-2xl text-left transition-all ${p.stock<=0?'opacity-20':'active:scale-95 shadow-lg hover:border-emerald-500/30'}`}>
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-[8px] font-black text-emerald-500 uppercase">{p.category}</span>
-                <span className="text-[8px] font-bold text-slate-600 italic">S: {p.stock}</span>
+            <button key={p.id} onClick={()=>addToCart(p)} disabled={p.stock<=0} className={`bg-white rounded-xl shadow-tokopedia overflow-hidden text-left transition-all ${p.stock<=0?'opacity-40 grayscale':'active:scale-95'}`}>
+              <div className="h-32 bg-gray-50 flex items-center justify-center text-gray-200">
+                <ShoppingBag size={48} strokeWidth={1}/>
               </div>
-              <h3 className="text-white font-bold text-xs uppercase line-clamp-2 mb-3 h-8 leading-tight">{p.name}</h3>
-              <p className="text-sm md:text-base font-black text-white italic tracking-tight">Rp{p.price.toLocaleString()}</p>
+              <div className="p-3">
+                <h3 className="text-xs font-normal line-clamp-2 mb-1 h-8 leading-relaxed">{p.name}</h3>
+                <p className="text-sm font-bold text-[#212121] mb-1">Rp{p.price.toLocaleString()}</p>
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-medium text-gray-400">Stok: {p.stock}</span>
+                </div>
+              </div>
             </button>
           ))}
         </div>
       </main>
 
-      {/* CART ASIDE (Responsive: Slide-in Mobile, Sidebar Desktop) */}
+      {/* CART OVERLAY / SIDEBAR */}
       <div className={`fixed inset-0 z-[100] transition-opacity duration-300 md:relative md:inset-auto md:z-0 md:flex ${isCartOpen ? 'opacity-100' : 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto'}`}>
-        <div className="absolute inset-0 bg-black/60 md:hidden" onClick={() => setIsCartOpen(false)} />
-        <aside className={`absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-[#0F1218] border-l border-white/5 flex flex-col transition-transform duration-300 transform md:relative md:w-[380px] md:translate-x-0 ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-          <div className="p-6 border-b border-white/5 flex justify-between items-center">
-            <h2 className="font-bold text-white italic uppercase text-xs flex items-center gap-2"><ShoppingCart size={16} className="text-emerald-500"/> Keranjang</h2>
-            <div className="flex gap-2">
-              <button onClick={()=>{if(confirm("Reset?"))setCart([])}} className="p-2 text-rose-500/50 hover:text-rose-500"><Trash2 size={18}/></button>
-              <button onClick={() => setIsCartOpen(false)} className="md:hidden p-2 text-slate-400"><X/></button>
+        <div className="absolute inset-0 bg-black/40 md:hidden" onClick={() => setIsCartOpen(false)} />
+        <aside className={`absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-white flex flex-col transition-transform duration-300 transform md:relative md:w-[400px] md:translate-x-0 ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+            <h2 className="font-bold text-gray-800 text-sm">Keranjang Belanja</h2>
+            <div className="flex gap-1">
+               <button onClick={()=>setCart([])} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={20}/></button>
+               <button onClick={() => setIsCartOpen(false)} className="md:hidden p-2 text-gray-400"><X/></button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
             {cart.map(i=>(
-              <div key={i.id} className="bg-white/5 p-3 rounded-xl flex justify-between items-center border border-white/5">
-                <div className="min-w-0 flex-1 pr-3">
-                  <p className="text-[11px] font-bold text-white uppercase truncate">{i.name}</p>
-                  <p className="text-[10px] text-emerald-500 font-black">Rp{i.price.toLocaleString()}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input type="number" value={i.qty} onChange={e=>updateQty(i.id, e.target.value, i.stock)} className="w-10 bg-black/40 border border-white/10 rounded-lg py-1.5 text-center text-[11px] font-bold text-white outline-none"/>
-                  <button onClick={()=>updateQty(i.id, 0, i.stock)} className="text-slate-700 hover:text-rose-500"><X size={14}/></button>
+              <div key={i.id} className="flex gap-3 pb-4 border-b border-gray-50">
+                <div className="w-16 h-16 bg-gray-50 rounded-lg flex items-center justify-center text-gray-300"><ShoppingBag size={24}/></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate uppercase">{i.name}</p>
+                  <p className="text-sm font-bold text-[#00AA5B] mt-1">Rp{i.price.toLocaleString()}</p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <button onClick={() => updateQty(i.id, i.qty - 1, i.stock)} className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-[#00AA5B] hover:bg-green-50">-</button>
+                    <span className="text-xs font-bold w-4 text-center">{i.qty}</span>
+                    <button onClick={() => updateQty(i.id, i.qty + 1, i.stock)} className="w-7 h-7 rounded-full border border-[#00AA5B] flex items-center justify-center text-white bg-[#00AA5B] shadow-sm shadow-green-100">+</button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="p-6 bg-[#14181F] border-t border-white/10 rounded-t-3xl space-y-4 shadow-2xl">
-            <div className="flex justify-between items-end"><span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tagihan</span><span className="text-2xl font-black text-white italic">Rp{total.toLocaleString()}</span></div>
+          <div className="p-6 bg-white border-t border-gray-100 shadow-[0_-4px_10px_rgba(0,0,0,0.03)] space-y-4">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Total Harga</span>
+              <span className="font-bold text-lg text-[#00AA5B]">Rp{total.toLocaleString()}</span>
+            </div>
+            
             <div className="space-y-3">
-              <input type="number" value={cash} onChange={e=>setCash(e.target.value)} placeholder="Tunai..." className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 text-center text-emerald-400 font-bold text-lg outline-none focus:border-emerald-500"/>
-              <div className="bg-black/20 rounded-xl p-3 border border-white/5 text-center">
-                <p className="text-[9px] font-bold text-slate-600 uppercase mb-1">Kembali</p>
-                <p className="text-2xl font-black italic text-white underline decoration-emerald-500 underline-offset-4">Rp{change.toLocaleString()}</p>
+              <input type="number" value={cash} onChange={e=>setCash(e.target.value)} placeholder="Masukkan nominal uang..." className="w-full bg-white border border-gray-200 rounded-lg p-3 text-center text-gray-800 font-bold text-lg outline-none focus:border-[#00AA5B]"/>
+              <div className="bg-gray-50 rounded-lg p-3 flex justify-between items-center">
+                <span className="text-xs text-gray-500">Kembalian</span>
+                <span className={`font-bold ${change < 0 ? 'text-red-500' : 'text-gray-800'}`}>Rp{change.toLocaleString()}</span>
               </div>
             </div>
-            <button onClick={bayar} disabled={cart.length===0||Number(cash)<total} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] transition-all active:scale-95 disabled:opacity-20">Selesaikan Pembayaran</button>
+
+            <button onClick={bayar} disabled={cart.length===0||Number(cash)<total} className="w-full py-4 bg-[#00AA5B] hover:bg-[#009650] text-white rounded-xl font-bold uppercase text-xs tracking-wider transition-all disabled:opacity-30">Bayar Sekarang</button>
           </div>
         </aside>
       </div>
 
+      {/* MOBILE NAV BOTTOM */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-3 z-50">
+        <Link href="/" className="flex flex-col items-center gap-1 text-[#00AA5B]"><Home size={20}/><span className="text-[10px] font-medium">Home</span></Link>
+        <Link href="/history" className="flex flex-col items-center gap-1 text-gray-400"><History size={20}/><span className="text-[10px] font-medium">Riwayat</span></Link>
+        <Link href="/settings" className="flex flex-col items-center gap-1 text-gray-400"><Settings size={20}/><span className="text-[10px] font-medium">Setelan</span></Link>
+      </nav>
+
       {success && (
-        <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center text-emerald-500 animate-in fade-in duration-300">
-          <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4 border border-emerald-500/20 animate-bounce"><CheckCircle2 size={40}/></div>
-          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white">Berhasil</h2>
+        <div className="fixed inset-0 z-[200] bg-white flex flex-col items-center justify-center text-[#00AA5B] animate-in fade-in">
+          <CheckCircle2 size={80} className="mb-4 animate-bounce"/>
+          <h2 className="text-2xl font-bold text-[#212121]">Transaksi Selesai</h2>
         </div>
       )}
     </div>
