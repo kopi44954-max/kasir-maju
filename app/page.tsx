@@ -1,127 +1,98 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, Search, Package, Trash2, CheckCircle, Settings, FileText } from 'lucide-react';
+import { ShoppingBag, Search, Box, Trash2, Zap, Settings, BarChart3 } from 'lucide-react';
 
-export default function CashierPage() {
+export default function NexusCashier() {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
 
-  const fetchData = async () => {
+  const load = async () => {
     const res = await fetch('/api/pos');
     const data = await res.json();
     setProducts(data.products || []);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { load(); }, []);
 
   const addToCart = (p: any) => {
-    if (p.stock <= 0) return alert("Stok Habis!");
-    const existing = cart.find(item => item.id === p.id);
-    if (existing) {
-      setCart(cart.map(item => item.id === p.id ? { ...item, qty: item.qty + 1 } : item));
+    if (p.stock <= 0) return;
+    const exist = cart.find(x => x.id === p.id);
+    if (exist) {
+      setCart(cart.map(x => x.id === p.id ? {...x, qty: x.qty + 1} : x));
     } else {
-      setCart([...cart, { ...p, qty: 1 }]);
+      setCart([...cart, {...p, qty: 1}]);
     }
   };
 
-  const removeFromCart = (id: string) => setCart(cart.filter(item => item.id !== id));
-
-  const total = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
-
-  const handleCheckout = async () => {
-    if (cart.length === 0) return;
+  const checkout = async () => {
+    const total = cart.reduce((a, b) => a + (b.price * b.qty), 0);
     const res = await fetch('/api/pos', {
       method: 'POST',
       body: JSON.stringify({ type: 'ADD_TRANSACTION', data: { items: cart, totalPrice: total } })
     });
-    if (res.ok) {
-      alert("Transaksi Berhasil!");
-      setCart([]);
-      fetchData();
-    }
+    if (res.ok) { setCart([]); load(); }
   };
 
-  const filtered = products.filter((p: any) => p.name.toLowerCase().includes(search.toLowerCase()));
-
   return (
-    <div className="min-h-screen bg-[#07080A] text-slate-300 flex flex-col md:flex-row font-sans">
-      {/* Sidebar Navigation */}
-      <div className="w-full md:w-20 bg-[#111318] border-r border-white/5 flex md:flex-col items-center py-6 gap-8 justify-center md:justify-start">
-        <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-black font-black">TR</div>
-        <Link href="/" className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl"><ShoppingCart size={20}/></Link>
-        <Link href="/history" className="p-3 hover:bg-white/5 rounded-xl transition-all"><FileText size={20}/></Link>
-        <Link href="/settings" className="p-3 hover:bg-white/5 rounded-xl transition-all"><Settings size={20}/></Link>
-      </div>
+    <div className="min-h-screen bg-[#050505] text-slate-300 flex font-sans">
+      {/* Nexus Sidebar */}
+      <nav className="w-20 border-r border-white/5 flex flex-col items-center py-8 gap-10 bg-[#080808]">
+        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]"><Zap size={20}/></div>
+        <Link href="/" className="text-indigo-500 bg-indigo-500/10 p-3 rounded-xl"><ShoppingBag size={20}/></Link>
+        <Link href="/history" className="hover:text-white p-3 transition-colors"><BarChart3 size={20}/></Link>
+        <Link href="/settings" className="hover:text-white p-3 transition-colors"><Settings size={20}/></Link>
+      </nav>
 
-      {/* Main Content */}
-      <div className="flex-1 p-6 md:p-10 overflow-y-auto h-screen">
-        <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-white italic tracking-tighter">KASIR <span className="text-emerald-500 not-italic">MAJU.</span></h1>
-            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-600">Sistem Kasir Toko Rahma</p>
-          </div>
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
+      {/* Product Hub */}
+      <main className="flex-1 p-10 overflow-y-auto h-screen">
+        <header className="flex justify-between items-center mb-12">
+          <h1 className="text-2xl font-black tracking-tighter text-white">NEXUS<span className="text-indigo-500">POS</span></h1>
+          <div className="relative w-96">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16}/>
             <input 
-              placeholder="Cari produk..." 
-              className="w-full bg-[#111318] border border-white/5 p-4 pl-12 rounded-2xl outline-none focus:border-emerald-500/50 transition-all text-sm"
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Cari produk di Nexus..." 
+              className="w-full bg-white/5 border border-white/10 p-3 pl-12 rounded-xl outline-none focus:border-indigo-500/50 transition-all text-sm text-white"
             />
           </div>
         </header>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {filtered.map((p: any) => (
-            <button 
-              key={p.id} 
-              onClick={() => addToCart(p)}
-              className="bg-[#111318] p-6 rounded-3xl border border-white/5 hover:border-emerald-500/50 text-left transition-all group active:scale-95"
-            >
-              <div className="w-10 h-10 bg-black rounded-xl mb-4 flex items-center justify-center group-hover:text-emerald-500"><Package size={20}/></div>
-              <h3 className="text-white font-bold text-sm uppercase truncate mb-1">{p.name}</h3>
-              <p className="text-emerald-500 font-black italic text-sm">Rp{Number(p.price).toLocaleString()}</p>
-              <p className="text-[9px] font-bold text-slate-600 mt-2 uppercase tracking-widest">Stok: {p.stock}</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {products.filter((p:any) => p.name.toLowerCase().includes(query.toLowerCase())).map((p: any) => (
+            <button key={p.id} onClick={() => addToCart(p)} className="bg-[#0C0C0E] p-6 rounded-2xl border border-white/5 hover:border-indigo-500/30 text-left transition-all group active:scale-95">
+              <Box className="mb-4 text-slate-700 group-hover:text-indigo-500 transition-colors" size={24}/>
+              <h3 className="text-white font-bold text-sm uppercase mb-1">{p.name}</h3>
+              <p className="text-indigo-400 font-mono text-sm mb-4">Rp{p.price.toLocaleString()}</p>
+              <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Stok: {p.stock}</div>
             </button>
           ))}
         </div>
-      </div>
+      </main>
 
-      {/* Cart Panel */}
-      <div className="w-full md:w-[400px] bg-[#0A0B10] border-l border-white/5 p-8 flex flex-col h-screen">
-        <h2 className="text-xl font-black text-white mb-8 flex items-center gap-3 italic">CART <span className="text-emerald-500 not-italic">({cart.length})</span></h2>
-        
-        <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scroll">
-          {cart.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center opacity-20 uppercase font-black text-[10px] tracking-widest">Keranjang Kosong</div>
-          ) : (
-            cart.map((item) => (
-              <div key={item.id} className="flex justify-between items-center bg-[#111318] p-4 rounded-2xl border border-white/5">
-                <div className="flex-1">
-                  <p className="text-white font-bold text-xs uppercase">{item.name}</p>
-                  <p className="text-[10px] text-slate-500">Rp{item.price.toLocaleString()} x {item.qty}</p>
-                </div>
-                <button onClick={() => removeFromCart(item.id)} className="text-rose-500 p-2 hover:bg-rose-500/10 rounded-lg"><Trash2 size={16}/></button>
+      {/* Cart Console */}
+      <aside className="w-[380px] border-l border-white/5 bg-[#080808] p-8 flex flex-col shadow-2xl">
+        <h2 className="text-sm font-black uppercase tracking-widest text-slate-500 mb-8">Checkout Console</h2>
+        <div className="flex-1 space-y-4 overflow-y-auto">
+          {cart.map(item => (
+            <div key={item.id} className="flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/5 group">
+              <div>
+                <p className="text-xs font-bold text-white uppercase">{item.name}</p>
+                <p className="text-[10px] text-slate-500 font-mono">Rp{item.price.toLocaleString()} x {item.qty}</p>
               </div>
-            ))
-          )}
+              <button onClick={() => setCart(cart.filter(x => x.id !== item.id))} className="text-slate-600 hover:text-rose-500"><Trash2 size={14}/></button>
+            </div>
+          ))}
         </div>
-
-        <div className="mt-8 pt-8 border-t border-white/5 space-y-6">
-          <div className="flex justify-between items-end">
-            <span className="text-[10px] font-black uppercase text-slate-500">Total Pembayaran</span>
-            <span className="text-3xl font-black text-emerald-500 italic leading-none">Rp{total.toLocaleString()}</span>
+        <div className="mt-8 pt-8 border-t border-white/5">
+          <div className="flex justify-between items-end mb-6">
+            <span className="text-[10px] font-black uppercase text-slate-600">Total Kredit</span>
+            <span className="text-3xl font-black text-white tracking-tighter italic">Rp{cart.reduce((a,b) => a+(b.price*b.qty), 0).toLocaleString()}</span>
           </div>
-          <button 
-            onClick={handleCheckout}
-            disabled={cart.length === 0}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all flex items-center justify-center gap-2"
-          >
-            <CheckCircle size={18}/> Proses Transaksi
-          </button>
+          <button onClick={checkout} disabled={cart.length === 0} className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg shadow-indigo-600/20">Eksekusi Transaksi</button>
         </div>
-      </div>
+      </aside>
     </div>
   );
 }

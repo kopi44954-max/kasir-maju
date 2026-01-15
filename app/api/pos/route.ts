@@ -17,38 +17,44 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const { type, data, id } = await req.json();
     const db = getDB();
 
-    if (body.type === 'ADD_PRODUCT') {
+    if (type === 'ADD_PRODUCT') {
       db.products.push({
         id: Date.now().toString(),
-        name: body.data.name,
-        price: Number(body.data.price) || 0,
-        cost: Number(body.data.cost) || 0,
-        stock: Number(body.data.stock) || 0,
-        category: body.data.category || 'UMUM'
+        name: data.name,
+        price: Number(data.price) || 0,
+        cost: Number(data.cost) || 0,
+        stock: Number(data.stock) || 0,
+        category: data.category || 'GENERAL'
       });
-    } else if (body.type === 'ADD_TRANSACTION') {
-      const items = body.data.items || [];
-      const totalJual = Number(body.data.totalPrice) || 0;
-      const totalModal = items.reduce((acc: number, item: any) => {
+    } 
+    
+    else if (type === 'ADD_TRANSACTION') {
+      const totalJual = Number(data.totalPrice);
+      const totalModal = data.items.reduce((acc: number, item: any) => {
         const p = db.products.find((prod: any) => prod.id === item.id);
         return acc + ((Number(p?.cost) || 0) * item.qty);
       }, 0);
 
       db.transactions.push({
-        id: `TRX-${Date.now()}`,
+        id: `NEX-${Date.now()}`,
         date: new Date().toISOString(),
-        items,
+        items: data.items,
         totalPrice: totalJual,
         profit: totalJual - totalModal
       });
 
-      items.forEach((item: any) => {
+      // Update Stock
+      data.items.forEach((item: any) => {
         const p = db.products.find((prod: any) => prod.id === item.id);
-        if (p) p.stock = Math.max(0, Number(p.stock) - item.qty);
+        if (p) p.stock = Math.max(0, p.stock - item.qty);
       });
+    }
+
+    else if (type === 'DELETE_PRODUCT') {
+      db.products = db.products.filter((p: any) => p.id !== id);
     }
 
     saveDB(db);
