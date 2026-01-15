@@ -1,55 +1,58 @@
-import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 
-const redis = Redis.fromEnv();
-const DB_KEY = 'db_kasir';
+const dbPath = path.join(process.cwd(), 'db.json');
+
+// Helper untuk baca/tulis DB
+const getDB = () => JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+const saveDB = (db: any) => fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
 
 export async function GET() {
-  try {
-    const data = await redis.get(DB_KEY);
-    return NextResponse.json(data || { products: [], transactions: [] }, { headers: { 'Cache-Control': 'no-store' } });
-  } catch (e) {
-    return NextResponse.json({ products: [], transactions: [] });
-  }
+  return NextResponse.json(getDB());
 }
 
 export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    let db: any = await redis.get(DB_KEY) || { products: [], transactions: [] };
+  const body = await req.json();
+  const db = getDB();
 
-    switch (body.type) {
-      case 'ADD_PRODUCT':
-        db.products.push({ ...body.data, id: Date.now() });
-        break;
-      case 'UPDATE_PRODUCT':
-        const uIdx = db.products.findIndex((p: any) => p.id === body.data.id);
-        if (uIdx !== -1) db.products[uIdx] = { ...body.data };
-        break;
-      case 'DELETE_PRODUCT':
-        db.products = db.products.filter((p: any) => p.id !== body.id);
-        break;
-      case 'TRANSACTION':
-        let calculatedProfit = 0;
-        body.cart.forEach((item: any) => {
-          const pIdx = db.products.findIndex((p: any) => p.id === item.id);
-          if (pIdx !== -1) {
-            // Logika Laba: (Jual - Modal) * Qty
-            const cost = Number(db.products[pIdx].cost) || 0;
-            const price = Number(item.price);
-            calculatedProfit += (price - cost) * Number(item.qty);
-            db.products[pIdx].stock = Number(db.products[pIdx].stock) - Number(item.qty);
-          }
-        });
-        db.transactions.push({ ...body.transaction, profit: calculatedProfit });
-        break;
-      case 'DELETE_TRANSACTION':
-        db.transactions = db.transactions.filter((t: any) => t.id !== body.id);
-        break;
-    }
-    await redis.set(DB_KEY, db);
-    return NextResponse.json({ success: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  switch (body.type) {
+    case 'ADD_TRANSACTION':
+      const newTransaction = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        ...body.data
+      };
+      db.transactions.push(newTransaction);
+      // Update stok otomatis
+      body.data.items.forEach((item: any) => {
+        const product = db.products.find((p: any) => p.id === item.id);
+        if (product) product.stock = (Number(product.stock) || 0) - item.qty;
+      });
+      break;
+
+    case 'DELETE_TRANSACTION':
+      db.transactions = db.transactions.filter((t: any) => t.id !== body.id);
+      break;
+
+    case 'DELETE_ALL_HISTORY':
+      db.transactions = [];
+      break;
+
+    case 'ADD_PRODUCT':
+      db.products.push({ id: Date.now().toString(), ...body.data });
+      break;
+
+    case 'UPDATE_PRODUCT':
+      const idx = db.products.findIndex((p: any) => p.id === body.data.id);
+      if (idx > -1) db.products[idx] = body.data;
+      break;
+
+    case 'DELETE_PRODUCT':
+      db.products = db.products.filter((p: any) => p.id !== body.id);
+      break;
   }
+
+  saveDB(db);
+  return NextResponse.json({ success: true });
 }
