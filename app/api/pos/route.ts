@@ -7,9 +7,7 @@ const DB_KEY = 'db_kasir';
 export async function GET() {
   try {
     const data = await redis.get(DB_KEY);
-    return NextResponse.json(data || { products: [], transactions: [] }, {
-      headers: { 'Cache-Control': 'no-store' }
-    });
+    return NextResponse.json(data || { products: [], transactions: [] }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
     return NextResponse.json({ products: [], transactions: [] });
   }
@@ -19,8 +17,6 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     let db: any = await redis.get(DB_KEY) || { products: [], transactions: [] };
-    if (!db.products) db.products = [];
-    if (!db.transactions) db.transactions = [];
 
     switch (body.type) {
       case 'ADD_PRODUCT':
@@ -38,6 +34,7 @@ export async function POST(req: Request) {
         body.cart.forEach((item: any) => {
           const pIdx = db.products.findIndex((p: any) => p.id === item.id);
           if (pIdx !== -1) {
+            // Logika Laba: (Jual - Modal) * Qty
             const cost = Number(db.products[pIdx].cost) || 0;
             const price = Number(item.price);
             calculatedProfit += (price - cost) * Number(item.qty);
@@ -49,11 +46,7 @@ export async function POST(req: Request) {
       case 'DELETE_TRANSACTION':
         db.transactions = db.transactions.filter((t: any) => t.id !== body.id);
         break;
-      case 'DELETE_ALL_TRANSACTIONS':
-        db.transactions = [];
-        break;
     }
-
     await redis.set(DB_KEY, db);
     return NextResponse.json({ success: true });
   } catch (e: any) {
