@@ -7,12 +7,8 @@ const redis = new Redis({
 })
 
 export async function GET() {
-  try {
-    const data: any = await redis.get('toko_rahma_db') || { products: [], transactions: [] };
-    return NextResponse.json(data);
-  } catch (error) {
-    return NextResponse.json({ products: [], transactions: [] });
-  }
+  const data: any = await redis.get('toko_rahma_db') || { products: [], transactions: [] };
+  return NextResponse.json(data);
 }
 
 export async function POST(req: Request) {
@@ -21,23 +17,19 @@ export async function POST(req: Request) {
     let data: any = await redis.get('toko_rahma_db') || { products: [], transactions: [] };
 
     if (body.type === 'TRANSACTION') {
-      // Simpan transaksi dengan timestamp
       const newTransaction = {
         ...body.transaction,
         id: `TRX-${Date.now()}`,
         date: new Date().toISOString()
       };
       data.transactions.unshift(newTransaction);
-      
-      // Update Stok
       body.cart.forEach((item: any) => {
         const p = data.products.find((p: any) => p.id === item.id);
         if (p) p.stock = Number(p.stock) - Number(item.qty);
       });
-    } else if (body.type === 'ADD_PRODUCT') {
-      data.products.push({ ...body.data, id: Date.now() });
-    } else if (body.type === 'UPDATE_PRODUCT') {
-      data.products = data.products.map((p: any) => p.id === body.data.id ? body.data : p);
+    } else if (body.type === 'ADD_PRODUCT' || body.type === 'UPDATE_PRODUCT') {
+      if (body.type === 'ADD_PRODUCT') data.products.push({ ...body.data, id: Date.now() });
+      else data.products = data.products.map((p: any) => p.id === body.data.id ? body.data : p);
     } else if (body.type === 'DELETE_PRODUCT') {
       data.products = data.products.filter((p: any) => p.id !== body.id);
     }
