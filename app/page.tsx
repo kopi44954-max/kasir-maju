@@ -1,174 +1,124 @@
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Trash2, Package, Search, Edit3, PlusCircle, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShoppingCart, Settings, Package, Search, Trash2, ReceiptText } from 'lucide-react';
 
-export default function ManajemenInventaris() {
+export default function TokopediaKasir() {
   const [products, setProducts] = useState<any[]>([]);
+  const [cart, setCart] = useState<any[]>([]);
   const [search, setSearch] = useState("");
-  const [form, setForm] = useState<any>({ name: '', price: '', cost: '', stock: '', category: 'UMUM' });
-  const [isEdit, setIsEdit] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  // Fungsi load data dengan pengaman
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch('/api/pos');
-      if (!res.ok) throw new Error();
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : { products: [] };
-      setProducts(data.products || []);
-    } catch (e) {
-      console.error("Gagal load data:", e);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    fetch('/api/pos').then(res => res.json()).then(data => setProducts(data.products || []));
   }, []);
 
-  useEffect(() => { load(); }, [load]);
-
-  // Fungsi Simpan (Tambah & Update)
-  const save = async (e: any) => {
-    e.preventDefault();
-    const type = isEdit ? 'UPDATE_PRODUCT' : 'ADD_PRODUCT';
-    try {
-      const res = await fetch('/api/pos', { 
-        method: 'POST', 
-        body: JSON.stringify({ type, data: isEdit ? form : { ...form, id: Date.now() } }) 
-      });
-      if (res.ok) {
-        setForm({ name: '', price: '', cost: '', stock: '', category: 'UMUM' });
-        setIsEdit(false);
-        load();
-      }
-    } catch (e) {
-      alert("Gagal memproses data");
+  const addToCart = (p: any) => {
+    if (p.stock <= 0) return alert("Stok Habis!");
+    const exist = cart.find(item => item.id === p.id);
+    if (exist) {
+      setCart(cart.map(item => item.id === p.id ? { ...item, qty: item.qty + 1 } : item));
+    } else {
+      setCart([...cart, { ...p, qty: 1 }]);
     }
   };
 
-  // Fungsi Hapus
-  const del = async (id: any) => { 
-    if(confirm("Hapus produk ini secara permanen?")){ 
-      try {
-        await fetch('/api/pos', { method:'POST', body:JSON.stringify({type:'DELETE_PRODUCT', id}) }); 
-        load();
-      } catch (e) {
-        alert("Gagal menghapus");
-      }
+  const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+  const bayar = async () => {
+    if (cart.length === 0) return;
+    const res = await fetch('/api/pos', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: 'TRANSACTION',
+        cart: cart,
+        transaction: { items: cart, total: total }
+      })
+    });
+    if (res.ok) {
+      alert("Pembayaran Berhasil!");
+      setCart([]);
+      window.location.reload();
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F3F7] pb-24">
-      {/* HEADER TETAP BISA DIKLIK UNTUK KEMBALI */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-[100] shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-           <div className="flex items-center gap-4">
-             <Link 
-               href="/" 
-               className="p-2 -ml-2 text-gray-400 hover:text-[#00AA5B] hover:bg-green-50 rounded-full transition-all flex items-center justify-center"
-             >
-               <ArrowLeft size={24}/>
-             </Link>
-             <h1 className="text-lg font-bold text-gray-800 uppercase tracking-tight">Manajemen Stok</h1>
-           </div>
-           <div className="hidden md:block text-[10px] font-bold text-[#00AA5B] bg-green-50 px-3 py-1 rounded-full uppercase">Toko Rahma POS</div>
+    <div className="min-h-screen bg-[#F0F3F7] flex flex-col md:flex-row font-sans text-[#212121]">
+      {/* KIRI: PRODUK */}
+      <div className="flex-1 p-4 md:p-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-black text-[#00AA5B] tracking-tight">Toko Rahma <span className="text-gray-400 font-light">POS</span></h1>
+          <button onClick={() => window.location.href = '/settings'} className="p-2 hover:bg-white rounded-full transition-all text-gray-400 hover:text-[#00AA5B]">
+            <Settings size={28} />
+          </button>
+        </div>
+
+        <div className="relative mb-8 shadow-sm">
+          <Search className="absolute left-4 top-4 text-gray-300" size={20} />
+          <input 
+            placeholder="Cari barang di Toko Rahma..." 
+            className="w-full p-4 pl-12 rounded-xl border-none outline-none focus:ring-2 focus:ring-[#00AA5B] font-medium"
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {products.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).map(p => (
+            <div key={p.id} onClick={() => addToCart(p)} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden border border-transparent hover:border-[#42b549]">
+              <div className="h-32 bg-gray-50 flex items-center justify-center text-gray-200">
+                <Package size={48} />
+              </div>
+              <div className="p-3">
+                <p className="font-bold text-sm truncate uppercase">{p.name}</p>
+                <p className="text-[#FA591D] font-black text-base mt-1">Rp{Number(p.price).toLocaleString()}</p>
+                <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold">Stok: {p.stock}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* PANEL FORM */}
-        <div className="lg:col-span-4">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sticky top-24">
-            <h2 className="font-bold text-[#212121] mb-6 flex items-center gap-2 uppercase text-xs tracking-widest">
-              {isEdit ? <Edit3 className="text-orange-500" size={18}/> : <PlusCircle className="text-[#00AA5B]" size={18}/>}
-              {isEdit ? "Edit Produk" : "Tambah Produk"}
-            </h2>
-            <form onSubmit={save} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Nama Produk</label>
-                <input required value={form.name} onChange={e=>setForm({...form, name:e.target.value.toUpperCase()})} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:border-[#00AA5B] outline-none font-bold uppercase"/>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase">Kategori</label>
-                  <input required value={form.category} onChange={e=>setForm({...form, category:e.target.value.toUpperCase()})} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:border-[#00AA5B] outline-none font-bold uppercase"/>
+      {/* KANAN: KERANJANG */}
+      <div className="w-full md:w-[400px] bg-white border-l border-gray-100 p-6 flex flex-col shadow-2xl">
+        <div className="flex items-center gap-2 mb-6 text-lg font-bold border-b pb-4">
+          <ShoppingCart className="text-[#00AA5B]" />
+          <span>Keranjang Belanja</span>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto space-y-4">
+          {cart.length === 0 && (
+            <div className="text-center py-20 text-gray-300">
+               <ShoppingCart size={48} className="mx-auto mb-2 opacity-20" />
+               <p className="text-xs font-bold uppercase tracking-widest">Keranjang Kosong</p>
+            </div>
+          )}
+          {cart.map(item => (
+            <div key={item.id} className="flex gap-3 bg-gray-50 p-3 rounded-xl relative group">
+              <div className="w-12 h-12 bg-white rounded-lg border flex items-center justify-center text-gray-300"><Package size={20}/></div>
+              <div className="flex-1">
+                <p className="font-bold text-[11px] uppercase truncate w-32">{item.name}</p>
+                <p className="text-[#00AA5B] text-xs font-black">Rp{(item.price * item.qty).toLocaleString()}</p>
+                <div className="flex items-center gap-3 mt-2">
+                   <button onClick={() => setCart(cart.map(c => c.id === item.id ? {...c, qty: Math.max(1, c.qty - 1)} : c))} className="w-6 h-6 border rounded-full flex items-center justify-center text-[#00AA5B] font-bold">-</button>
+                   <span className="text-xs font-bold">{item.qty}</span>
+                   <button onClick={() => setCart(cart.map(c => c.id === item.id ? {...c, qty: c.qty + 1} : c))} className="w-6 h-6 border rounded-full flex items-center justify-center text-[#00AA5B] font-bold">+</button>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase">Stok</label>
-                  <input required type="number" value={form.stock} onChange={e=>setForm({...form, stock:e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:border-[#00AA5B] outline-none font-bold"/>
-                </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Harga Modal</label>
-                <input required type="number" value={form.cost} onChange={e=>setForm({...form, cost:e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:border-[#00AA5B] outline-none font-bold"/>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-[#00AA5B] uppercase">Harga Jual</label>
-                <input required type="number" value={form.price} onChange={e=>setForm({...form, price:e.target.value})} className="w-full bg-green-50 border border-[#00AA5B]/20 rounded-xl p-3 text-sm font-black text-[#00AA5B] focus:border-[#00AA5B] outline-none"/>
-              </div>
-              <div className="pt-2 flex gap-2">
-                {isEdit && (
-                  <button type="button" onClick={() => {setIsEdit(false); setForm({name:'', price:'', cost:'', stock:'', category:'UMUM'})}} className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-xl font-bold text-[10px] uppercase">Batal</button>
-                )}
-                <button className={`flex-[2] py-4 rounded-xl font-bold text-white text-[10px] tracking-widest uppercase transition-all shadow-lg ${isEdit ? 'bg-orange-500 shadow-orange-100' : 'bg-[#00AA5B] shadow-green-100 hover:bg-[#009650]'}`}>
-                  {isEdit ? "Perbarui" : "Simpan"}
-                </button>
-              </div>
-            </form>
-          </div>
+              <button onClick={() => setCart(cart.filter(c => c.id !== item.id))} className="text-gray-300 hover:text-red-500"><Trash2 size={18}/></button>
+            </div>
+          ))}
         </div>
 
-        {/* TABEL INVENTARIS */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#00AA5B]" size={20}/>
-            <input onChange={e=>setSearch(e.target.value)} placeholder="Cari barang atau kategori..." className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-6 py-4 text-sm outline-none shadow-sm focus:border-[#00AA5B] transition-all"/>
+        <div className="border-t pt-6 bg-white">
+          <div className="flex justify-between items-end mb-4">
+            <span className="text-gray-400 font-bold text-xs uppercase">Total Tagihan</span>
+            <span className="text-[#FA591D] text-2xl font-black">Rp{total.toLocaleString()}</span>
           </div>
-
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-[10px] uppercase tracking-wider">
-                <tr>
-                  <th className="px-6 py-4">Nama Produk</th>
-                  <th className="px-6 py-4 text-right">Harga Jual</th>
-                  <th className="px-6 py-4 text-center">Stok</th>
-                  <th className="px-6 py-4 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-gray-600 font-medium">
-                {loading ? (
-                  <tr><td colSpan={4} className="text-center py-20"><Loader2 className="animate-spin mx-auto text-[#00AA5B]"/></td></tr>
-                ) : products.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())).length === 0 ? (
-                  <tr><td colSpan={4} className="text-center py-20 text-xs text-gray-400 uppercase font-bold tracking-widest">Barang tidak ditemukan</td></tr>
-                ) : products.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())).map(p=>(
-                  <tr key={p.id} className="hover:bg-gray-50 transition-colors uppercase">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${p.stock < 10 ? 'bg-red-50 text-red-400' : 'bg-gray-100 text-gray-300'}`}><Package size={20}/></div>
-                        <div>
-                          <p className="text-xs font-bold text-gray-800 leading-tight">{p.name}</p>
-                          <p className="text-[10px] text-[#00AA5B] font-bold">{p.category}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right font-black text-gray-800 tracking-tight">Rp{Number(p.price).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-center font-bold">
-                       <span className={`px-2 py-1 rounded text-[10px] ${p.stock < 10 ? 'bg-red-50 text-red-500' : 'bg-green-50 text-[#00AA5B]'}`}>{p.stock}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-center gap-2">
-                        <button onClick={()=>{setForm(p); setIsEdit(true); window.scrollTo({top:0, behavior:'smooth'})}} className="p-2 text-gray-400 hover:text-orange-500 transition-colors"><Edit3 size={18}/></button>
-                        <button onClick={()=>del(p.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <button 
+            onClick={bayar}
+            disabled={cart.length === 0}
+            className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all ${cart.length > 0 ? 'bg-[#00AA5B] text-white shadow-lg shadow-green-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+          >
+            Selesaikan Bayar
+          </button>
         </div>
       </div>
     </div>
