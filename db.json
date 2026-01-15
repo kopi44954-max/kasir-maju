@@ -1,0 +1,13 @@
+{
+  "products": [
+    {
+      "id": "1768464339935",
+      "name": "minyak",
+      "price": 19000,
+      "cost": 18000,
+      "stock": 1000,
+      "category": "UMUM"
+    }
+  ],
+  "transactions": []
+}
