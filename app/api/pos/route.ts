@@ -2,14 +2,31 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-const dbPath = path.join(process.cwd(), 'db.json');
+// Gunakan path absolut yang sangat jelas
+const dbPath = path.resolve(process.cwd(), 'db.json');
 
 const getDB = () => {
-  if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, JSON.stringify({ products: [], transactions: [] }));
-  return JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+  try {
+    if (!fs.existsSync(dbPath)) {
+      fs.writeFileSync(dbPath, JSON.stringify({ products: [], transactions: [] }, null, 2));
+    }
+    const data = fs.readFileSync(dbPath, 'utf8');
+    return JSON.parse(data || '{"products":[], "transactions":[]}');
+  } catch (e) {
+    console.error("Gagal membaca database:", e);
+    return { products: [], transactions: [] };
+  }
 };
 
-const saveDB = (data: any) => fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+const saveDB = (data: any) => {
+  try {
+    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error("Gagal menulis database:", e);
+    return false;
+  }
+};
 
 export async function GET() {
   return NextResponse.json(getDB());
@@ -17,8 +34,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { type, data, id } = await req.json();
+    const body = await req.json();
     const db = getDB();
+    const { type, data, id } = body;
 
     if (type === 'ADD_PRODUCT') {
       db.products.push({
@@ -27,26 +45,19 @@ export async function POST(req: Request) {
         price: Number(data.price) || 0,
         cost: Number(data.cost) || 0,
         stock: Number(data.stock) || 0,
-        category: data.category || 'GENERAL'
+        category: data.category || 'UMUM'
       });
     } 
     
     else if (type === 'ADD_TRANSACTION') {
-      const totalJual = Number(data.totalPrice);
-      const totalModal = data.items.reduce((acc: number, item: any) => {
-        const p = db.products.find((prod: any) => prod.id === item.id);
-        return acc + ((Number(p?.cost) || 0) * item.qty);
-      }, 0);
-
       db.transactions.push({
-        id: `NEX-${Date.now()}`,
+        id: `TRX-${Date.now()}`,
         date: new Date().toISOString(),
         items: data.items,
-        totalPrice: totalJual,
-        profit: totalJual - totalModal
+        totalPrice: Number(data.totalPrice),
+        profit: Number(data.profit || 0)
       });
-
-      // Update Stock
+      // Potong Stok
       data.items.forEach((item: any) => {
         const p = db.products.find((prod: any) => prod.id === item.id);
         if (p) p.stock = Math.max(0, p.stock - item.qty);
@@ -57,9 +68,14 @@ export async function POST(req: Request) {
       db.products = db.products.filter((p: any) => p.id !== id);
     }
 
-    saveDB(db);
+    const isSaved = saveDB(db);
+    
+    if (!isSaved) {
+      return NextResponse.json({ success: false, error: "Izin tulis file ditolak server" }, { status: 500 });
+    }
+
     return NextResponse.json({ success: true });
-  } catch (err) {
-    return NextResponse.json({ success: false }, { status: 500 });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
