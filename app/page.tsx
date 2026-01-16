@@ -11,7 +11,6 @@ export default function KasirGlass() {
   const [showModal, setShowModal] = useState(false);
   const [showCartMobile, setShowCartMobile] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  
   const [printData, setPrintData] = useState<any>({ items: [], total: 0, cash: 0, change: 0, date: "" });
 
   const fetchData = async () => {
@@ -42,14 +41,12 @@ export default function KasirGlass() {
   };
 
   const finalize = async (shouldPrint: boolean) => {
-    const validCart = cart.filter(item => item.qty > 0);
-    if (validCart.length === 0) return alert("Keranjang kosong!");
-
+    if (cart.length === 0) return;
     const transactionPayload = {
       type: 'TRANSACTION',
-      cart: validCart,
+      cart: cart,
       transaction: {
-        items: validCart,
+        items: cart,
         total: total,
         profit: total - totalModal,
         cash: bayarNominal,
@@ -68,12 +65,12 @@ export default function KasirGlass() {
       if (res.ok) {
         if (shouldPrint) {
           setPrintData({ ...transactionPayload.transaction, date: new Date().toLocaleString() });
-          setTimeout(() => { window.print(); resetApp(); }, 800);
+          setTimeout(() => { window.print(); resetApp(); }, 500);
         } else {
           resetApp();
         }
       }
-    } catch (error) { alert("Gagal memproses transaksi"); }
+    } catch (error) { alert("Error!"); }
   };
 
   const resetApp = () => {
@@ -84,21 +81,20 @@ export default function KasirGlass() {
 
   return (
     <div className="h-screen bg-slate-50 flex flex-col md:flex-row font-sans overflow-hidden">
-      <style dangerouslySetInnerHTML={{ __html: `@media print { body * { visibility: hidden !important; } #section-to-print, #section-to-print * { visibility: visible !important; } #section-to-print { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; display: block !important; background: white; } .no-print { display: none !important; } @page { size: auto; margin: 5mm; } }`}} />
+      <style dangerouslySetInnerHTML={{ __html: `@media print { body * { visibility: hidden !important; } #section-to-print, #section-to-print * { visibility: visible !important; } #section-to-print { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; display: block !important; } .no-print { display: none !important; } }`}} />
 
       {/* STRUK AREA */}
-      <div id="section-to-print" className="hidden print:block p-4 text-black font-mono text-[12px] leading-tight">
-        <div className="text-center border-b border-dashed border-black pb-2 mb-2 uppercase font-bold">Toko Maju<br/><span className="text-[10px] font-normal">{printData.date}</span></div>
-        <div className="space-y-1 mb-2 border-b border-dashed border-black pb-2">
-          {printData.items.map((item: any, i: number) => (
-            <div key={i} className="flex justify-between"><span>{item.qty}x {item.name}</span><span>{(item.qty * item.price).toLocaleString()}</span></div>
-          ))}
-        </div>
-        <div className="flex justify-between font-bold"><span>TOTAL</span><span>Rp{printData.total.toLocaleString()}</span></div>
-        <div className="flex justify-between"><span>TUNAI</span><span>Rp{printData.cash.toLocaleString()}</span></div>
-        <div className="flex justify-between border-t border-dashed border-black pt-1 font-bold"><span>KEMBALI</span><span>Rp{printData.change.toLocaleString()}</span></div>
+      <div id="section-to-print" className="hidden print:block p-4 text-black font-mono text-[12px]">
+        <center className="font-bold border-b pb-2 mb-2">TOKO MAJU<br/>{printData.date}</center>
+        {printData.items.map((it: any, i: number) => (
+          <div key={i} className="flex justify-between"><span>{it.qty}x {it.name}</span><span>{(it.qty * it.price).toLocaleString()}</span></div>
+        ))}
+        <div className="border-t mt-2 pt-2 flex justify-between font-bold"><span>TOTAL</span><span>{printData.total.toLocaleString()}</span></div>
+        <div className="flex justify-between"><span>BAYAR</span><span>{printData.cash.toLocaleString()}</span></div>
+        <div className="flex justify-between border-t border-dashed"><span>KEMBALI</span><span>{printData.change.toLocaleString()}</span></div>
       </div>
 
+      {/* SIDEBAR - CONSISTENT */}
       <aside className="hidden md:flex no-print w-20 bg-white border-r border-slate-200 flex-col items-center py-8 gap-6 h-full">
         <button onClick={() => window.location.href='/'} className="p-3 text-[#00AA5B] bg-green-50 rounded-xl"><Home size={22}/></button>
         <button onClick={() => window.location.href='/history'} className="p-3 text-slate-400 hover:text-[#00AA5B] transition-all"><Receipt size={22}/></button>
@@ -126,6 +122,7 @@ export default function KasirGlass() {
         </div>
       </main>
 
+      {/* MOBILE NAV - CONSISTENT */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center h-16 z-50 no-print">
         <button onClick={() => window.location.href='/'} className="text-[#00AA5B] flex flex-col items-center"><Home size={20}/><span className="text-[10px] font-bold">Home</span></button>
         <button onClick={() => window.location.href='/history'} className="text-slate-400 flex flex-col items-center"><Receipt size={20}/><span className="text-[10px] font-bold">Riwayat</span></button>
@@ -137,7 +134,7 @@ export default function KasirGlass() {
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCartMobile(false)} className="md:hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="fixed md:relative bottom-0 w-full md:w-[400px] h-[85vh] md:h-screen bg-white border-l border-slate-200 flex flex-col z-[60] shadow-2xl md:shadow-none rounded-t-[32px] md:rounded-none">
-              <div className="p-5 border-b border-slate-100 flex justify-between items-center"><h2 className="font-black text-lg uppercase">Detail Pesanan</h2><button onClick={() => setShowCartMobile(false)} className="md:hidden p-2 bg-slate-50 rounded-full"><X size={20}/></button></div>
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center"><h2 className="font-black text-lg uppercase italic">Ringkasan Belanja</h2><button onClick={() => setShowCartMobile(false)} className="md:hidden p-2 bg-slate-50 rounded-full"><X size={20}/></button></div>
               <div className="flex-1 overflow-y-auto p-5 space-y-3">
                 {cart.map(item => (
                   <div key={item.id} className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col gap-2">
@@ -148,8 +145,17 @@ export default function KasirGlass() {
               </div>
               <div className="p-5 border-t border-slate-100 space-y-4">
                 <div className="flex justify-between items-center"><span className="text-[10px] font-black text-slate-400 uppercase">Total Bayar</span><span className="text-2xl font-black">Rp{total.toLocaleString()}</span></div>
-                <input type="number" value={bayarNominal || ''} onChange={e => setBayarNominal(Number(e.target.value))} className="w-full p-3 bg-slate-50 rounded-xl border-2 border-slate-100 font-black text-right text-lg outline-none focus:border-green-500" placeholder="Uang Tunai" />
-                <button onClick={() => setShowModal(true)} disabled={cart.length === 0 || bayarNominal < total} className="w-full py-4 bg-[#00AA5B] text-white rounded-xl font-black uppercase text-xs shadow-xl shadow-green-500/30 disabled:opacity-30">Proses Transaksi</button>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Uang Tunai (Rp)</label>
+                  <input type="number" value={bayarNominal || ''} onChange={e => setBayarNominal(Number(e.target.value))} className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 font-black text-right text-xl outline-none focus:border-green-500" placeholder="0" />
+                </div>
+                {bayarNominal >= total && bayarNominal > 0 && (
+                  <div className="flex justify-between items-center px-4 py-3 bg-green-50 rounded-xl border border-green-100">
+                    <span className="text-[10px] font-bold text-green-600 uppercase">Kembalian</span>
+                    <span className="text-lg font-black text-green-700">Rp{kembalian.toLocaleString()}</span>
+                  </div>
+                )}
+                <button onClick={() => setShowModal(true)} disabled={cart.length === 0 || bayarNominal < total} className="w-full py-4 bg-[#00AA5B] text-white rounded-2xl font-black uppercase text-xs shadow-xl shadow-green-500/30 disabled:opacity-30">Selesaikan Pembayaran</button>
               </div>
             </motion.div>
           </>
@@ -162,9 +168,9 @@ export default function KasirGlass() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
             <motion.div initial={{ y: "100%", opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: "100%" }} className="relative bg-white p-8 rounded-t-[32px] md:rounded-[40px] shadow-2xl w-full max-w-md text-center">
               <div className="w-20 h-20 bg-green-100 text-[#00AA5B] rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle2 size={40} /></div>
-              <h3 className="text-2xl font-black text-slate-800 mb-1">TRANSAKSI SELESAI</h3>
-              <p className="text-[10px] text-slate-400 font-bold mb-6 uppercase">Kembalian: Rp{kembalian.toLocaleString()}</p>
-              <div className="grid grid-cols-1 gap-3"><button onClick={() => finalize(true)} className="py-4 bg-[#00AA5B] text-white rounded-2xl font-black uppercase text-[10px]">Cetak Struk</button><button onClick={() => finalize(false)} className="py-4 bg-slate-50 text-slate-400 rounded-2xl font-black uppercase text-[10px]">Tanpa Struk</button></div>
+              <h3 className="text-2xl font-black text-slate-800 mb-1 italic">SUKSES!</h3>
+              <p className="text-[10px] text-slate-400 font-bold mb-6 uppercase">Transaksi telah tersimpan</p>
+              <div className="grid grid-cols-1 gap-3"><button onClick={() => finalize(true)} className="py-4 bg-[#00AA5B] text-white rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-green-500/20">Cetak Struk</button><button onClick={() => finalize(false)} className="py-4 bg-slate-50 text-slate-400 rounded-2xl font-black uppercase text-[10px]">Tutup</button></div>
             </motion.div>
           </div>
         )}
