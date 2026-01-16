@@ -20,16 +20,31 @@ export default function KasirGlass() {
     date: ""
   });
 
+  // Ambil data produk saat pertama kali load
+  const fetchData = async () => {
+    try {
+      const res = await fetch('/api/pos');
+      const data = await res.json();
+      setProducts(data.products || []);
+    } catch (err) {
+      console.error("Gagal mengambil data:", err);
+    }
+  };
+
   useEffect(() => {
     setIsMounted(true);
-    fetch('/api/pos').then(res => res.json()).then(data => setProducts(data.products || []));
+    fetchData();
   }, []);
 
   const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  // Perbaikan: Pastikan cost adalah angka agar profit akurat
   const totalModal = cart.reduce((sum, item) => sum + (Number(item.cost || 0) * item.qty), 0);
   const kembalian = bayarNominal - total;
 
   const addToCart = (p: any) => {
+    // Validasi stok sebelum tambah (opsional)
+    if (p.stock <= 0) return alert("Stok habis!");
+    
     const exist = cart.find(item => item.id === p.id);
     if (exist) {
       setCart(cart.map(item => item.id === p.id ? { ...item, qty: item.qty + 1 } : item));
@@ -47,45 +62,54 @@ export default function KasirGlass() {
     setCart(cart.map(item => item.id === id ? { ...item, qty: isNaN(newQty) ? 0 : newQty } : item));
   };
 
+  // --- BAGIAN UTAMA YANG DIPERBAIKI ---
   const finalize = async (shouldPrint: boolean) => {
     const validCart = cart.filter(item => item.qty > 0);
     if (validCart.length === 0) return alert("Keranjang kosong!");
 
     const currentTransaction = {
-      items: [...validCart],
+      items: validCart,
       total: total,
       cash: bayarNominal,
       change: kembalian,
       date: new Date().toLocaleString('id-ID')
     };
+    
     setPrintData(currentTransaction);
 
-    const res = await fetch('/api/pos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'TRANSACTION', 
-        cart: validCart,
-        transaction: { 
-          items: validCart, 
-          total, 
-          profit: total - totalModal, 
-          cash: bayarNominal, 
-          change: kembalian, 
-          date: new Date().toISOString() 
-        }
-      })
-    });
+    try {
+      const res = await fetch('/api/pos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'TRANSACTION', 
+          cart: validCart, // WAJIB ada agar route.ts bisa potong stok
+          transaction: { 
+            items: validCart, 
+            total: total, 
+            profit: total - totalModal, // Laba kotor
+            cash: bayarNominal, 
+            change: kembalian, 
+            date: new Date().toISOString() 
+          }
+        })
+      });
 
-    if (res.ok) {
-      if (shouldPrint) {
-        setTimeout(() => {
-          window.print();
+      if (res.ok) {
+        if (shouldPrint) {
+          setTimeout(() => {
+            window.print();
+            resetApp();
+          }, 800);
+        } else {
           resetApp();
-        }, 800);
+        }
       } else {
-        resetApp();
+        alert("Gagal menyimpan ke database. Cek koneksi internet/Upstash.");
       }
+    } catch (error) {
+      alert("Terjadi kesalahan sistem.");
+      console.error(error);
     }
   };
 
@@ -93,13 +117,14 @@ export default function KasirGlass() {
     setCart([]);
     setBayarNominal(0);
     setShowModal(false);
-    fetch('/api/pos').then(res => res.json()).then(data => setProducts(data.products || []));
+    fetchData(); // Ambil data terbaru untuk mengupdate tampilan stok
   };
 
   if (!isMounted) return null;
 
   return (
     <div className="h-screen bg-slate-50 flex flex-col md:flex-row font-sans overflow-hidden">
+      {/* CSS untuk Print */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           body * { visibility: hidden !important; }
@@ -117,7 +142,7 @@ export default function KasirGlass() {
         }
       `}} />
 
-      {/* STRUK AREA */}
+      {/* STRUK AREA (Hidden except when printing) */}
       <div id="section-to-print" className="hidden print:block p-4 text-black font-mono text-[12px] leading-tight">
         <div className="text-center border-b border-dashed border-black pb-2 mb-2">
           <h2 className="font-bold text-sm uppercase">Toko Maju</h2>
@@ -166,7 +191,6 @@ export default function KasirGlass() {
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-xl font-black uppercase tracking-tighter text-slate-800">Toko<span className="text-[#00AA5B]">Maju</span></h1>
             
-            {/* IKON KERANJANG POJOK KANAN ATAS (Mobile) */}
             <button 
               onClick={() => setShowCartMobile(true)} 
               className="md:hidden relative p-3 bg-white shadow-sm border border-slate-200 rounded-xl text-[#00AA5B]"
@@ -197,10 +221,12 @@ export default function KasirGlass() {
                 whileTap={{ scale: 0.97 }} 
                 key={p.id} 
                 onClick={() => addToCart(p)} 
-                className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-green-500 transition-all cursor-pointer flex flex-col justify-between h-[150px]"
+                className={`bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-green-500 transition-all cursor-pointer flex flex-col justify-between h-[150px] ${p.stock <= 0 ? 'opacity-50 grayscale' : ''}`}
               >
                 <div className="flex justify-between items-start">
-                  <span className="text-[9px] font-bold text-slate-400 px-1.5 py-0.5 bg-slate-50 rounded border border-slate-100 uppercase">Stok: {p.stock}</span>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${p.stock <= 5 ? 'bg-red-50 text-red-500 border-red-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                    Stok: {p.stock}
+                  </span>
                   <div className="bg-green-50 p-1 rounded-md text-green-600"><Plus size={14} /></div>
                 </div>
                 <div>
@@ -226,7 +252,7 @@ export default function KasirGlass() {
         </button>
       </nav>
 
-      {/* PANEL PESANAN */}
+      {/* PANEL PESANAN (Cart Detail) */}
       <AnimatePresence>
         {(showCartMobile || (typeof window !== 'undefined' && window.innerWidth > 768)) && (
           <>
@@ -235,7 +261,6 @@ export default function KasirGlass() {
               onClick={() => setShowCartMobile(false)}
               className="md:hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 no-print"
             />
-            
             <motion.div 
               initial={window.innerWidth < 768 ? { y: "100%" } : { x: "100%" }} 
               animate={window.innerWidth < 768 ? { y: 0 } : { x: 0 }} 
@@ -263,7 +288,6 @@ export default function KasirGlass() {
                         <p className="font-bold text-[11px] uppercase truncate text-slate-700">{item.name}</p>
                         <p className="text-xs text-green-600 font-black">Rp{(item.price * item.qty).toLocaleString()}</p>
                       </div>
-                      {/* TOMBOL HAPUS PRODUK */}
                       <button 
                         onClick={() => removeFromCart(item.id)}
                         className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
