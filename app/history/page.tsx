@@ -1,93 +1,113 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Calendar, Loader2, Trash2, Clock, Receipt, TrendingUp } from 'lucide-react';
+import { Home, Receipt, Settings, Trash2, Calendar, TrendingUp, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-export default function RiwayatTransaksi() {
-  const [trx, setTrx] = useState<any[]>([]);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [loading, setLoading] = useState(true);
+export default function HistoryGlass() {
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const load = async () => {
-    setLoading(true);
-    const res = await fetch('/api/pos');
-    const data = await res.json();
-    setTrx(data.transactions || []);
-    setLoading(false);
+  useEffect(() => {
+    setIsMounted(true);
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const res = await fetch('/api/pos');
+      const data = await res.json();
+      setTransactions(data.transactions || []);
+    } catch (err) { console.error(err); }
   };
 
-  useEffect(() => { load(); }, []);
+  const deleteTx = async (id: any) => {
+    if (!confirm("Hapus laporan ini?")) return;
+    const res = await fetch('/api/pos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'DELETE_TRANSACTION', id })
+    });
+    if (res.ok) setTransactions(prev => prev.filter(t => t.id !== id));
+  };
 
-  const del = async (id: any) => { if(confirm("Hapus transaksi ini?")){ await fetch('/api/pos', { method:'POST', body:JSON.stringify({type:'DELETE_TRANSACTION', id}) }); load(); }};
-  const delAll = async () => { if(confirm("Hapus semua riwayat?")){ await fetch('/api/pos', { method:'POST', body:JSON.stringify({type:'DELETE_ALL_TRANSACTIONS'}) }); load(); }};
+  const calculateTotal = (key: string) => transactions.reduce((sum, t) => sum + Number(t[key] || 0), 0);
 
-  const filtered = trx.filter(t => t.date.startsWith(date));
-  const stats = filtered.reduce((acc, curr) => {
-    acc.omzet += curr.totalPrice;
-    acc.modal += curr.items.reduce((s: any, i: any) => s + (Number(i.cost || 0) * i.qty), 0);
-    acc.laba = acc.omzet - acc.modal;
-    return acc;
-  }, { omzet: 0, modal: 0, laba: 0 });
+  if (!isMounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#F0F3F7] pb-24">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <header className="flex flex-col gap-6 mb-8">
-          <Link href="/" className="flex items-center gap-2 text-[#00AA5B] font-bold text-sm">
-            <ArrowLeft size={18}/> Kembali ke Kasir
-          </Link>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div>
-              <h1 className="text-2xl font-bold text-[#212121]">Riwayat Transaksi</h1>
-              <p className="text-xs text-gray-500 mt-1">Pantau performa penjualan harian Anda</p>
-            </div>
-            <div className="flex items-center gap-3 w-full md:w-auto">
-               <input type="date" value={date} onChange={e=>setDate(e.target.value)} className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium outline-none focus:border-[#00AA5B]"/>
-               <button onClick={delAll} className="p-2.5 text-red-500 hover:bg-red-50 rounded-lg border border-red-100 transition-colors"><Trash2 size={20}/></button>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-orange-50 via-white to-slate-100 flex flex-col md:flex-row font-sans pb-24 md:pb-0">
+      
+      {/* SIDEBAR (Desktop) */}
+      <aside className="hidden md:flex w-20 bg-white/40 backdrop-blur-xl border-r border-white/60 flex-col items-center py-8 gap-6 h-screen sticky top-0 z-20">
+        <button onClick={() => window.location.href='/'} className="p-3 text-gray-400 hover:text-[#00AA5B] transition-all"><Home size={22}/></button>
+        <button onClick={() => window.location.href='/history'} className="p-3 text-orange-600 bg-white/80 rounded-xl shadow-sm border border-white"><Receipt size={22}/></button>
+        <button onClick={() => window.location.href='/setting'} className="p-3 text-gray-400 hover:text-blue-600 transition-all"><Settings size={22}/></button>
+      </aside>
+
+      {/* BOTTOM NAV (Mobile) */}
+      <nav className="md:hidden fixed bottom-4 left-4 right-4 bg-white/60 backdrop-blur-2xl border border-white/80 h-16 rounded-2xl flex items-center justify-around z-50 shadow-2xl">
+        <button onClick={() => window.location.href='/'} className="p-3 text-gray-400"><Home size={24}/></button>
+        <button onClick={() => window.location.href='/history'} className="p-3 text-orange-600 bg-orange-100/50 rounded-xl"><Receipt size={24}/></button>
+        <button onClick={() => window.location.href='/setting'} className="p-3 text-gray-400"><Settings size={24}/></button>
+      </nav>
+
+      <div className="flex-1 max-w-5xl mx-auto p-4 md:p-10 space-y-6 w-full">
+        <header>
+          <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Riwayat Laporan</h1>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data penjualan real-time</p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Omzet</p>
-            <p className="text-xl font-bold text-[#212121]">Rp{stats.omzet.toLocaleString()}</p>
+        {/* STATS */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white/40 backdrop-blur-md p-4 rounded-2xl border border-white shadow-sm">
+            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Omzet</p>
+            <p className="text-lg font-black text-slate-800">Rp{calculateTotal('total').toLocaleString()}</p>
           </div>
-          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-red-400">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Modal</p>
-            <p className="text-xl font-bold text-red-500">Rp{stats.modal.toLocaleString()}</p>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-[#00AA5B]/20 shadow-md shadow-green-100 border-l-4 border-l-[#00AA5B]">
-            <p className="text-[10px] font-bold text-[#00AA5B] uppercase tracking-wider mb-1">Estimasi Laba</p>
-            <p className="text-xl font-bold text-[#00AA5B]">Rp{stats.laba.toLocaleString()}</p>
+          <div className="bg-green-500/10 backdrop-blur-md p-4 rounded-2xl border border-white shadow-sm">
+            <p className="text-[9px] font-black text-green-600/60 uppercase mb-1">Laba</p>
+            <p className="text-lg font-black text-green-600">Rp{calculateTotal('profit').toLocaleString()}</p>
           </div>
         </div>
 
+        {/* LOG LIST */}
         <div className="space-y-3">
-          {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#00AA5B]" size={40}/></div> : 
-           filtered.length === 0 ? <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300 text-gray-400 font-medium">Belum ada transaksi di tanggal ini</div> :
-           filtered.map((t, i) => (
-            <div key={i} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between gap-4 hover:border-[#00AA5B]/30 transition-all group">
-              <div className="flex gap-4 items-start">
-                <div className="p-3 bg-gray-50 rounded-lg text-gray-400 group-hover:text-[#00AA5B] transition-colors"><Receipt size={24}/></div>
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-bold text-[#212121]">{new Date(t.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                    <span className="text-[10px] px-2 py-0.5 bg-green-50 text-[#00AA5B] rounded font-bold uppercase tracking-tighter">Sukses</span>
+          <h3 className="font-black text-xs uppercase tracking-widest text-slate-500 flex items-center gap-2 px-1"><Clock size={16}/> Log Terbaru</h3>
+          
+          <AnimatePresence>
+            {[...transactions].reverse().map((t) => (
+              <motion.div 
+                key={t.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white/40 backdrop-blur-md p-4 rounded-2xl border border-white shadow-sm flex flex-col gap-3"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase italic">
+                      {new Date(t.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}
+                    </p>
+                    <p className="text-[9px] text-slate-400 font-bold">{new Date(t.date).toLocaleTimeString('id-ID')}</p>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {t.items.map((it: any, idx: any) => (
-                      <span key={idx} className="text-[10px] bg-gray-50 text-gray-600 px-2 py-1 rounded-md border border-gray-100 font-medium">{it.name} (x{it.qty})</span>
-                    ))}
-                  </div>
+                  <button onClick={() => deleteTx(t.id)} className="p-2 text-red-200 hover:text-red-500 transition-colors bg-white/50 rounded-lg border border-white">
+                    <Trash2 size={16}/>
+                  </button>
                 </div>
-              </div>
-              <div className="flex justify-between md:flex-col md:items-end border-t md:border-t-0 pt-3 md:pt-0">
-                <p className="text-lg font-bold text-[#212121]">Rp{t.totalPrice.toLocaleString()}</p>
-                <button onClick={()=>del(t.id)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
-              </div>
-            </div>
-          ))}
+
+                <div className="flex flex-wrap gap-1.5">
+                  {t.items?.map((it:any, i:number) => (
+                    <span key={i} className="px-2 py-1 bg-white/80 border border-white text-[10px] font-bold rounded-lg uppercase text-slate-600 shadow-sm">
+                      {it.name} <span className="text-orange-500">x{it.qty}</span>
+                    </span>
+                  ))}
+                </div>
+
+                <div className="pt-3 border-t border-white/60 flex justify-between items-center">
+                   <span className="text-[9px] font-black text-slate-400 uppercase">Total Profit:</span>
+                   <span className="font-black text-orange-600 italic text-sm">Rp{Number(t.profit || 0).toLocaleString()}</span>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </div>
     </div>

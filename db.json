@@ -5,69 +5,43 @@
       "name": "minyak",
       "price": 19000,
       "cost": 18000,
-      "stock": 998,
+      "stock": 995,
       "category": "UMUM"
     },
     {
-      "id": "1768476879954",
-      "name": "ROKOK",
-      "price": 18000,
-      "cost": 16600,
-      "stock": 998,
-      "category": "UMUM"
+      "name": "TELUR 1 KG",
+      "cost": "27700",
+      "price": "30000",
+      "stock": "1000",
+      "id": 1768524243044
+    },
+    {
+      "name": "ROKOK JARUM COKLAT",
+      "cost": "16600",
+      "price": "18000",
+      "stock": "1000",
+      "id": 1768524283748
     }
   ],
   "transactions": [
     {
-      "id": "TRX-1768487801314",
-      "items": [
-        {
-          "id": "1768476879954",
-          "name": "ROKOK",
-          "price": 18000,
-          "cost": 16600,
-          "stock": 999,
-          "category": "UMUM",
-          "qty": 1
-        },
-        {
-          "id": "1768464339935",
-          "name": "minyak",
-          "price": 19000,
-          "cost": 18000,
-          "stock": 999,
-          "category": "UMUM",
-          "qty": 1
-        }
-      ],
-      "totalPrice": 37000,
-      "date": "2026-01-15T14:36:41.314Z"
-    },
-    {
-      "id": "TRX-1768476893646",
-      "date": "2026-01-15T11:34:53.646Z",
       "items": [
         {
           "id": "1768464339935",
           "name": "minyak",
           "price": 19000,
           "cost": 18000,
-          "stock": 1000,
-          "category": "UMUM",
-          "qty": 1
-        },
-        {
-          "id": "1768476879954",
-          "name": "ROKOK",
-          "price": 18000,
-          "cost": 16600,
-          "stock": 1000,
+          "stock": 996,
           "category": "UMUM",
           "qty": 1
         }
       ],
-      "totalPrice": 37000,
-      "profit": 0
+      "total": 19000,
+      "profit": 1000,
+      "cash": 50000,
+      "change": 31000,
+      "date": "2026-01-16T00:43:35.673Z",
+      "id": 1768524214679
     }
   ]
 }
