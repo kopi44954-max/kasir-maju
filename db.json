@@ -2,46 +2,104 @@
   "products": [
     {
       "id": "1768464339935",
-      "name": "minyak",
+      "name": "MINYAK KITA",
       "price": 19000,
       "cost": 18000,
-      "stock": 995,
+      "stock": 975,
       "category": "UMUM"
     },
     {
       "name": "TELUR 1 KG",
       "cost": "27700",
       "price": "30000",
-      "stock": "1000",
+      "stock": 984,
       "id": 1768524243044
     },
     {
       "name": "ROKOK JARUM COKLAT",
       "cost": "16600",
       "price": "18000",
-      "stock": "1000",
+      "stock": 984,
       "id": 1768524283748
+    },
+    {
+      "name": "RINSO KEMASAN 500 RUPIAH",
+      "cost": "900.8",
+      "price": "1000",
+      "stock": 994,
+      "id": 1768540486679
+    },
+    {
+      "name": "BENG BENG",
+      "cost": "1705",
+      "price": "2000",
+      "stock": "1000",
+      "id": 1768540848531
+    },
+    {
+      "name": "VOUCHER AXIS 3,5GB 5 HARI",
+      "cost": "11999",
+      "price": "14000",
+      "stock": 999,
+      "id": 1768541265680
+    },
+    {
+      "name": "TELUR 1 KG",
+      "cost": "27600",
+      "price": "30000",
+      "stock": "1000",
+      "id": 1768541348969
+    },
+    {
+      "name": "TELUR 1/2 KG",
+      "cost": "13800",
+      "price": "15000",
+      "stock": "1000",
+      "id": 1768541403501
+    },
+    {
+      "name": "BERAS",
+      "cost": "9800",
+      "price": "13000",
+      "stock": 997,
+      "id": 1768546634290
     }
   ],
   "transactions": [
     {
       "items": [
         {
+          "name": "BERAS",
+          "cost": "9800",
+          "price": "13000",
+          "stock": "998",
+          "id": 1768546634290,
+          "qty": 1
+        },
+        {
           "id": "1768464339935",
-          "name": "minyak",
+          "name": "MINYAK KITA",
           "price": 19000,
           "cost": 18000,
-          "stock": 996,
+          "stock": 976,
           "category": "UMUM",
+          "qty": 1
+        },
+        {
+          "name": "TELUR 1 KG",
+          "cost": "27700",
+          "price": "30000",
+          "stock": 985,
+          "id": 1768524243044,
           "qty": 1
         }
       ],
-      "total": 19000,
-      "profit": 1000,
-      "cash": 50000,
-      "change": 31000,
-      "date": "2026-01-16T00:43:35.673Z",
-      "id": 1768524214679
+      "total": 62000,
+      "profit": 6500,
+      "cash": 100000,
+      "change": 38000,
+      "date": "2026-01-16T06:58:08.969Z",
+      "id": 1768546688994
     }
   ]
 }
